@@ -14,7 +14,17 @@ Stack: Python, OpenCV, ArcFace (insightface), NumPy, local JSON storage.
 ├── output/
 │   └── result.jpg          # Image marked with result
 ├── src/
-│   └── layers/             # Each layer of the architecture
+│   ├── config/             # Defaults / settings
+│   ├── data/               # Data layer
+│   ├── preprocessing/      # Preprocessing layer
+│   ├── feature_extraction/ # Feature extraction layer
+│   ├── inference/          # Inference layer
+│   ├── post_processing/    # Post-processing layer
+│   ├── storage/            # Storage layer
+│   ├── output/             # Output layer
+│   ├── algorithms/         # Utility algorithms (optimizers, recursion, etc.)
+│   ├── calibration/        # Optional calibration modules
+│   └── main.py             # Entry point (recommended)
 ├── main.py
 ├── requirements.txt
 └── shell.nix               # NixOS environment
@@ -48,15 +58,42 @@ uv run python main.py
 python main.py
 ```
 
+Alternative:
+
+```bash
+python -m src.main
+```
+
 First run generates embeddings from `known_people` and saves them to `data/embeddings.json`. Subsequent runs load directly from file.
 If there are multiple images in `data/unknown/`, it will process all and save a result per file in `output/`.
 
+### Useful flags
+
+```bash
+# Rebuild embeddings after adding/changing known people photos
+python main.py --rebuild
+
+# Calibrate recognition strictness
+python main.py --threshold 0.74 --min-margin 0.02
+
+# Debug matches
+python main.py --topk 3
+
+# Auto-calibrate from stored embeddings (needs some people with >=2 photos)
+python main.py --calibrate --calib-optimizer adam
+
+# Optional: train extra calibrators (needs some people with >=2 photos)
+python main.py --train-logistic --logistic-optimizer adam
+python main.py --train-q-policy
+```
+
 ## Adjustments
 
-- **Recognition threshold**: edit `threshold=0.80` in `main.py` (Post-processing layer).
-- **Distance metric**: `cosine` (default) or `euclidean` in `InferenceLayer`.
-- **ArcFace model**: `buffalo_l` by default. You can change it in `FeatureExtractionLayer`.
-- **CPU/GPU**: defaults to CPU (`ctx_id=-1`). If you have CUDA, change to `ctx_id=0` in `FeatureExtractionLayer`.
+- **Recognition threshold**: use `--threshold` (default 0.80).
+- **Margin filter**: use `--min-margin` (default 0.03).
+- **Detection strictness**: use `--min-det-score` (default 0.50).
+- **Debug output**: use `--topk` to print top matches.
+- **CPU/GPU**: defaults to CPU (`ctx_id=-1` in `FeatureExtractionLayer`). For CUDA, change to `ctx_id=0`.
 
 ## Notes
 

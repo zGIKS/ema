@@ -2,6 +2,8 @@ import os
 from pathlib import Path
 from typing import List, Dict
 
+from src.algorithms.recursion_utils import recursive_find_images
+
 class DataLayer:
     def __init__(self, data_root: str = "data"):
         self.root = Path(data_root)
@@ -24,12 +26,12 @@ class DataLayer:
         person_dir = self.known_dir / person_name
         if not person_dir.exists():
             return []
-        return sorted([p for p in person_dir.iterdir() if p.suffix.lower() in {".jpg", ".jpeg", ".png"}])
+        return recursive_find_images(person_dir)
 
     def list_unknown_images(self) -> List[Path]:
         if not self.unknown_dir.exists():
             return []
-        return sorted([p for p in self.unknown_dir.iterdir() if p.suffix.lower() in {".jpg", ".jpeg", ".png"}])
+        return recursive_find_images(self.unknown_dir)
 
     def get_embedding_storage_path(self) -> Path:
         return self.root / "embeddings.json"
