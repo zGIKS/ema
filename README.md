@@ -38,6 +38,12 @@ Stack: Python, OpenCV, ArcFace (insightface), NumPy, local JSON storage.
 pip install -r requirements.txt
 ```
 
+### Using uv (recommended)
+
+```bash
+./scripts/bootstrap.sh
+```
+
 ### NixOS
 
 Use the provided shell for system libraries (`libstdc++`, `zlib`, etc.):
@@ -90,6 +96,7 @@ python main.py --train-q-policy
 ## Adjustments
 
 - **Recognition threshold**: use `--threshold` (default 0.80).
+- **Recognition threshold**: use `--threshold` (default 0.60).
 - **Margin filter**: use `--min-margin` (default 0.03).
 - **Detection strictness**: use `--min-det-score` (default 0.50).
 - **Debug output**: use `--topk` to print top matches.

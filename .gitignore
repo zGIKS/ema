@@ -16,4 +16,4 @@ build/
 .DS_Store
 output/
 models/
-data/embeddings.json
+data/
