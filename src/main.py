@@ -5,7 +5,7 @@ from pathlib import Path
 
 import numpy as np
 
-from src.config.settings import Settings
+from src.config.dotenv import load_dotenv
 from src.data import DataLayer
 from src.feature_extraction import FeatureExtractionLayer
 from src.inference import InferenceLayer
@@ -89,13 +89,18 @@ def build_parser(defaults: Settings) -> argparse.ArgumentParser:
 
 
 def run(argv: list[str] | None = None) -> int:
-    defaults = Settings()
+    # Carga automática de .env si existe (para usar el env directamente).
+    load_dotenv(".env", override=False)
+
+    from src.config.settings import Settings
+
+    defaults = Settings.from_env()
     parser = build_parser(defaults)
     args = parser.parse_args(argv)
 
     print("=== Facial Recognition System ===\n")
 
-    data_layer = DataLayer(data_root=defaults.data_root)
+    data_layer = DataLayer(data_root=defaults.data_root, allow_flat_known_people=defaults.allow_flat_known_people)
     preprocessor = PreprocessingLayer()
     extractor = FeatureExtractionLayer(
         model_name=defaults.model_name,

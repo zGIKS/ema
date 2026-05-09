@@ -44,6 +44,15 @@ pip install -r requirements.txt
 ./scripts/bootstrap.sh
 ```
 
+### Using .env
+
+1. Copy `.env.example` to `.env`
+2. Run normally (it auto-loads `.env`):
+
+```bash
+uv run python -m src.main
+```
+
 ### NixOS
 
 Use the provided shell for system libraries (`libstdc++`, `zlib`, etc.):
@@ -56,7 +65,8 @@ uv run python main.py
 
 ## Usage
 
-1. Place images of known people in `data/known_people/<name>/`.
+1. Place images of known people in `data/known_people/<name>/` (recommended).
+   - Optional: set `FR_ALLOW_FLAT_KNOWN=1` to also accept images directly under `data/known_people/` and use the filename as the person name.
 2. Place images to recognize in `data/unknown/`.
 3. Run:
 
