@@ -1,11 +1,8 @@
-from __future__ import annotations
-
 from dataclasses import dataclass
-
 import numpy as np
 
-from src.algorithms.backprop import LogisticNeuron
-from src.algorithms.optimizers import Adam, GradientDescent, Momentum, StochasticGradientDescent
+from .backprop import LogisticNeuron
+from .optimizers import Adam, GradientDescent, Momentum, StochasticGradientDescent
 
 
 @dataclass(frozen=True)
@@ -16,20 +13,6 @@ class LogisticCalibratorResult:
 
 
 class LogisticCalibrator:
-    """
-    Entrena un calibrador logístico usando backprop (algoritmo 6).
-
-    Features (x):
-      x0 = similitud coseno (top1)
-      x1 = 1.0 (bias explícito opcional, aunque también tenemos b)
-
-    Output:
-      p(reconocido) = sigmoid(w·x + b)
-
-    Optimización:
-      usa GD/SGD/Momentum/Adam (algoritmos 1-4) sobre gradientes calculados por backprop.
-    """
-
     def __init__(self, optimizer: str = "adam", lr: float = 0.1):
         name = optimizer.lower()
         if name == "gd":
@@ -43,7 +26,8 @@ class LogisticCalibrator:
         else:
             raise ValueError("optimizer must be one of: gd, sgd, momentum, adam")
 
-    def fit(self, pos_sims: np.ndarray, neg_sims: np.ndarray, steps: int = 400, seed: int = 0) -> LogisticCalibratorResult:
+    def fit(self, pos_sims: np.ndarray, neg_sims: np.ndarray,
+            steps: int = 400, seed: int = 0) -> LogisticCalibratorResult:
         rng = np.random.default_rng(seed)
         pos_sims = np.asarray(pos_sims, dtype=np.float32).reshape(-1)
         neg_sims = np.asarray(neg_sims, dtype=np.float32).reshape(-1)
@@ -51,12 +35,11 @@ class LogisticCalibrator:
         sims = np.concatenate([pos_sims, neg_sims], axis=0)
         y = np.concatenate([np.ones_like(pos_sims), np.zeros_like(neg_sims)], axis=0)
 
-        # Shuffle once
         idx = rng.permutation(len(sims))
         sims = sims[idx]
         y = y[idx]
 
-        x = np.stack([sims, np.ones_like(sims)], axis=1)  # (N,2)
+        x = np.stack([sims, np.ones_like(sims)], axis=1)
         neuron = LogisticNeuron(w=np.zeros(2, dtype=np.float32), b=0.0)
 
         params = np.array([neuron.w[0], neuron.w[1], neuron.b], dtype=np.float32)
@@ -69,5 +52,5 @@ class LogisticCalibrator:
             neuron.b = float(params[2])
 
         final_loss, _, _ = neuron.loss_and_grad(x, y)
-        return LogisticCalibratorResult(w=[float(neuron.w[0]), float(neuron.w[1])], b=float(neuron.b), loss=float(final_loss))
-
+        return LogisticCalibratorResult(w=[float(neuron.w[0]), float(neuron.w[1])],
+                                        b=float(neuron.b), loss=float(final_loss))

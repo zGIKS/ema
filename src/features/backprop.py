@@ -1,33 +1,9 @@
-from __future__ import annotations
-
 from dataclasses import dataclass
-
 import numpy as np
 
 
 @dataclass
 class LogisticNeuron:
-    """
-    ## 6. Backpropagation (en un caso simple)
-
-    Implementa una neurona logística (regresión logística) y su gradiente por backprop.
-
-    Forward:
-      z = w·x + b
-      o = sigmoid(z)
-
-    Loss (binary cross-entropy):
-      E = -[y*log(o) + (1-y)*log(1-o)]
-
-    Backprop:
-      dE/dz = o - y
-      dE/dw = (o - y) * x
-      dE/db = (o - y)
-
-    En este repo la usamos como calibrador opcional para convertir señales simples
-    (similitud coseno, det_score, área) en probabilidad de "reconocido".
-    """
-
     w: np.ndarray
     b: float = 0.0
 
@@ -47,4 +23,3 @@ class LogisticNeuron:
         dw = x.T @ dz
         db = float(np.sum(dz))
         return loss, dw.astype(np.float32), db
-

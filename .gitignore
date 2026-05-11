@@ -10,10 +10,7 @@ venv/
 dist/
 build/
 *.log
-*.swp
-*.swo
-*~
-.DS_Store
 output/
-models/
 data/
+models/*.zip
+models/buffalo_l/
