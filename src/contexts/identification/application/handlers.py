@@ -44,9 +44,12 @@ class IdentifyPersonCommandHandler:
                 box=extraction.box,
             )
 
+        # Threshold is applied on cosine similarity (since embeddings are normalized).
+        # This keeps the setting meaningful across engines.
+        person = match.person_id if match.score >= self._match_threshold else None
+
         # Convert cosine similarity [-1,1] to confidence-ish [0,1] for API friendliness.
         confidence_value = max(0.0, min(1.0, (match.score + 1.0) / 2.0))
-        person = match.person_id if confidence_value >= self._match_threshold else None
         return IdentificationResult(
             person_id=person,
             confidence=ConfidenceScore(confidence_value if person else 0.0),
@@ -62,4 +65,3 @@ class RegisterFaceCommandHandler:
     def handle(self, cmd: RegisterFaceCommand) -> None:
         extraction = self._engine.extract(cmd.image_bytes)
         self._repo.upsert_embedding(PersonId(cmd.person_id), extraction.embedding)
-

@@ -11,8 +11,8 @@ from src.contexts.identification.domain.model.commands import (
     RegisterFaceCommand,
 )
 from src.contexts.identification.infrastructure.ai.stub_engine import StubFaceRecognitionEngine
-from src.contexts.identification.infrastructure.persistence.in_memory_repo import (
-    InMemoryPersonRepository,
+from src.contexts.identification.infrastructure.persistence.sqlite_repo import (
+    SQLitePersonRepository,
 )
 from src.core.config import settings
 
@@ -40,8 +40,13 @@ class RecognitionService:
 
     @staticmethod
     def build_default() -> "RecognitionService":
-        repo = InMemoryPersonRepository()
-        engine = StubFaceRecognitionEngine()
+        # MVP default: persist embeddings in SQLite.
+        # For ephemeral/dev usage you can swap back to InMemoryPersonRepository.
+        repo = SQLitePersonRepository(
+            db_path=settings.db_path,
+            max_embeddings_per_person=settings.max_embeddings_per_person,
+        )
+        engine = _build_engine()
         identify = IdentifyPersonCommandHandler(
             engine=engine,
             repo=repo,
@@ -63,3 +68,28 @@ class RecognitionService:
         cmd = RegisterFaceCommand(person_id=person_id, image_bytes=image_bytes)
         self._register.handle(cmd)
 
+
+def _build_engine():
+    engine_setting = (settings.engine or "auto").strip().lower()
+    if engine_setting not in {"auto", "stub", "insightface"}:
+        engine_setting = "auto"
+
+    if engine_setting == "stub":
+        return StubFaceRecognitionEngine()
+
+    if engine_setting in {"auto", "insightface"}:
+        try:
+            from src.contexts.identification.infrastructure.ai.insightface_engine import (
+                InsightFaceRecognitionEngine,
+            )
+
+            return InsightFaceRecognitionEngine(
+                model_name=settings.insightface_model,
+                det_size=settings.insightface_det_size,
+            )
+        except Exception:
+            if engine_setting == "insightface":
+                raise
+            return StubFaceRecognitionEngine()
+
+    return StubFaceRecognitionEngine()

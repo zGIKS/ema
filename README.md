@@ -15,13 +15,31 @@ This repo is structured as a bounded context under `src/contexts/identification/
 
 ## Quickstart
 
-1. Install deps:
+1. Install deps (recommended: Nix):
 
 ```bash
-cd face-recognition-api
-python -m venv .venv
-. .venv/bin/activate
-pip install -r requirements.txt
+nix-shell
+```
+
+To include the InsightFace engine deps in Nix:
+
+```bash
+nix-shell --arg withML true
+```
+
+Alternatively, with `uv` (non-Nix environments):
+
+```bash
+uv sync
+
+# Optional: real recognition engine
+uv sync --extra ml
+```
+
+Then run with:
+
+```bash
+uv run uvicorn src.main:app --reload --port 8000
 ```
 
 2. Run:
@@ -30,10 +48,33 @@ pip install -r requirements.txt
 uvicorn src.main:app --reload --port 8000
 ```
 
+Embeddings persistence (MVP):
+
+- By default, enrolled faces are stored in a local SQLite file at `./data/fr.sqlite3`.
+- You can change it with `FR_DB_PATH=/path/to/fr.sqlite3`.
+
+Note: images are not stored; only embeddings are persisted.
+
 3. Try:
 
 - `POST /register` with `person_id` + `file`
+- You can also send multiple images using `files` (repeat the form field)
 - `POST /identify` with `file`
 
 Note: the current AI implementation is a **stub** (deterministic pseudo-embedding) so the architecture is runnable without heavyweight ML dependencies.
 
+## Real recognition (recommended)
+
+This repo includes an optional InsightFace-based engine (real face detection + embeddings).
+
+Run with InsightFace:
+
+```bash
+FR_ENGINE=insightface uvicorn src.main:app --reload --port 8000
+```
+
+Engine selection:
+
+- `FR_ENGINE=auto` (default): uses InsightFace if installed, else falls back to stub
+- `FR_ENGINE=stub`: always use stub
+- `FR_ENGINE=insightface`: require InsightFace deps (fails fast if missing)

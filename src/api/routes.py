@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, File, Form, UploadFile
 
 from src.api.schemas import IdentificationResponse, RegisterResponse
+from src.core.exceptions import ValidationError
 from src.services.recognition_service import RecognitionService
 
 router = APIRouter()
@@ -32,9 +33,19 @@ async def identify(file: UploadFile = File(...)) -> IdentificationResponse:
 @router.post("/register", response_model=RegisterResponse)
 async def register(
     person_id: str = Form(...),
-    file: UploadFile = File(...),
+    files: list[UploadFile] | None = File(None),
+    file: UploadFile | None = File(None),
 ) -> RegisterResponse:
-    image_bytes = await file.read()
-    _service.register_face(person_id=person_id, image_bytes=image_bytes)
-    return RegisterResponse(person_id=person_id, enrolled=True)
+    uploads: list[UploadFile] = []
+    if files:
+        uploads.extend(files)
+    if file is not None:
+        uploads.append(file)
+    if not uploads:
+        # Keep error shape consistent with our domain errors.
+        raise ValidationError("No file(s) uploaded")
 
+    for upl in uploads:
+        image_bytes = await upl.read()
+        _service.register_face(person_id=person_id, image_bytes=image_bytes)
+    return RegisterResponse(person_id=person_id, enrolled=True)
