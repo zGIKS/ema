@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from time import perf_counter
+from uuid import uuid4
+
 from fastapi import APIRouter, File, Form, UploadFile
 
 from src.api.schemas import IdentificationResponse, RegisterResponse
@@ -32,10 +35,13 @@ async def identify(file: UploadFile = File(...)) -> IdentificationResponse:
 
 @router.post("/register", response_model=RegisterResponse)
 async def register(
-    person_id: str = Form(...),
+    person_id: str | None = Form(None),
     files: list[UploadFile] | None = File(None),
     file: UploadFile | None = File(None),
 ) -> RegisterResponse:
+    started = perf_counter()
+    resolved_person_id = (person_id or "").strip() or uuid4().hex
+
     uploads: list[UploadFile] = []
     if files:
         uploads.extend(files)
@@ -47,5 +53,10 @@ async def register(
 
     for upl in uploads:
         image_bytes = await upl.read()
-        _service.register_face(person_id=person_id, image_bytes=image_bytes)
-    return RegisterResponse(person_id=person_id, enrolled=True)
+        _service.register_face(person_id=resolved_person_id, image_bytes=image_bytes)
+
+    _service.log_register_usage(
+        person_id=resolved_person_id,
+        duration_ms=int((perf_counter() - started) * 1000),
+    )
+    return RegisterResponse(person_id=resolved_person_id, enrolled=True)

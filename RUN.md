@@ -10,10 +10,10 @@ uv sync
 # optional (real recognition): uv sync --extra ml
 
 # run API
-uv run uvicorn src.main:app --host 0.0.0.0 --port 8000
+uv run uvicorn src.main:app --host 0.0.0.0 --port 8080
 
 # use real engine
-# FR_ENGINE=insightface uv run uvicorn src.main:app --host 0.0.0.0 --port 8000
+# FR_ENGINE=insightface uv run uvicorn src.main:app --host 0.0.0.0 --port 8080
 
 # persistence (default): ./data/fr.sqlite3
 # override: FR_DB_PATH=./data/fr.sqlite3
