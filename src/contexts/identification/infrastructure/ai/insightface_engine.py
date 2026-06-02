@@ -5,12 +5,9 @@ from dataclasses import dataclass
 import numpy as np
 
 from src.core.exceptions import NotFoundError, ValidationError
-from src.contexts.identification.domain.model.valueobjects import BoundingBox
-from src.contexts.identification.domain.services.face_recognition_service import (
-    ExtractionResult,
-    FaceRecognitionService,
-)
-from src.contexts.identification.infrastructure.acl.mappers import numpy_embedding_to_vo
+from src.contexts.identification.domain.model.results import FaceExtractionResult
+from src.contexts.identification.domain.model.valueobjects import BoundingBox, FaceEmbedding
+from src.contexts.identification.domain.services import FaceEmbeddingExtractionQueryService
 
 
 @dataclass(frozen=True, slots=True)
@@ -19,7 +16,7 @@ class _FacePick:
     bbox: np.ndarray  # [x1,y1,x2,y2]
 
 
-class InsightFaceRecognitionEngine(FaceRecognitionService):
+class InsightFaceRecognitionEngine(FaceEmbeddingExtractionQueryService):
     """
     Real face detection + embedding extractor using InsightFace.
 
@@ -46,7 +43,7 @@ class InsightFaceRecognitionEngine(FaceRecognitionService):
         self._app = FaceAnalysis(name=model_name, providers=["CPUExecutionProvider"])
         self._app.prepare(ctx_id=0, det_size=tuple(int(x) for x in det_size))
 
-    def extract(self, image_bytes: bytes) -> ExtractionResult:
+    async def handle_extract_embedding(self, image_bytes: bytes) -> FaceExtractionResult:
         if not image_bytes:
             raise ValidationError("image_bytes cannot be empty")
 
@@ -63,7 +60,10 @@ class InsightFaceRecognitionEngine(FaceRecognitionService):
         w = max(1, x2 - x1)
         h = max(1, y2 - y1)
         box = BoundingBox(x=max(0, x1), y=max(0, y1), w=w, h=h)
-        return ExtractionResult(embedding=numpy_embedding_to_vo(emb), box=box)
+        return FaceExtractionResult(
+            embedding=FaceEmbedding(tuple(float(x) for x in emb.tolist())),
+            box=box,
+        )
 
     def _decode(self, image_bytes: bytes) -> np.ndarray:
         arr = np.frombuffer(image_bytes, dtype=np.uint8)
@@ -99,4 +99,3 @@ class InsightFaceRecognitionEngine(FaceRecognitionService):
         if best is None:
             raise NotFoundError("No usable face detected")
         return best
-

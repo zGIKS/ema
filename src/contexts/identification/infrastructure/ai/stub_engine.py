@@ -4,15 +4,12 @@ import hashlib
 
 import numpy as np
 
-from src.contexts.identification.domain.model.valueobjects import BoundingBox
-from src.contexts.identification.domain.services.face_recognition_service import (
-    ExtractionResult,
-    FaceRecognitionService,
-)
-from src.contexts.identification.infrastructure.acl.mappers import numpy_embedding_to_vo
+from src.contexts.identification.domain.model.results import FaceExtractionResult
+from src.contexts.identification.domain.model.valueobjects import BoundingBox, FaceEmbedding
+from src.contexts.identification.domain.services import FaceEmbeddingExtractionQueryService
 
 
-class StubFaceRecognitionEngine(FaceRecognitionService):
+class StubFaceRecognitionEngine(FaceEmbeddingExtractionQueryService):
     """
     Deterministic "fake" embedding extractor.
 
@@ -23,7 +20,7 @@ class StubFaceRecognitionEngine(FaceRecognitionService):
     def __init__(self, embedding_dim: int = 128) -> None:
         self._dim = int(embedding_dim)
 
-    def extract(self, image_bytes: bytes) -> ExtractionResult:
+    async def handle_extract_embedding(self, image_bytes: bytes) -> FaceExtractionResult:
         digest = hashlib.sha256(image_bytes).digest()
         seed = int.from_bytes(digest[:8], "big", signed=False)
         rng = np.random.default_rng(seed)
@@ -32,5 +29,7 @@ class StubFaceRecognitionEngine(FaceRecognitionService):
 
         # Fake a box to keep API shape stable.
         box = BoundingBox(x=0, y=0, w=1, h=1)
-        return ExtractionResult(embedding=numpy_embedding_to_vo(vec), box=box)
-
+        return FaceExtractionResult(
+            embedding=FaceEmbedding(tuple(float(x) for x in vec.tolist())),
+            box=box,
+        )
