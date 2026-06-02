@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from time import perf_counter
 from typing import Annotated
-from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 
@@ -95,7 +94,7 @@ async def identify_person(
     response_model=RegisterResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Enroll person face samples",
-    description="Registers one or many face images for a person. Generates person_id when not provided.",
+    description="Registers one or many face images for a person using first name, last name and Peruvian DNI. The UUID person id is generated and managed internally.",
     responses={
         201: {"description": "Face samples enrolled"},
         422: {
@@ -113,9 +112,20 @@ async def register_person_face(
         SqlAlchemyUsageLogRepository,
         Depends(get_usage_log_repository),
     ],
-    person_id: str | None = Form(
-        default=None,
-        description="Optional person identifier. If missing, server generates one.",
+    first_name: str = Form(
+        ...,
+        description="Person first name. Allows Spanish letters, spaces, enie and accents only.",
+        examples=["Jose Luis"],
+    ),
+    last_name: str = Form(
+        ...,
+        description="Person last name. Allows Spanish letters, spaces, enie and accents only.",
+        examples=["Quispe Nunez"],
+    ),
+    dni: str = Form(
+        ...,
+        description="Peruvian DNI. Must contain exactly 8 digits.",
+        examples=["12345678"],
     ),
     files: list[UploadFile] | None = File(
         default=None,
@@ -127,7 +137,6 @@ async def register_person_face(
     ),
 ) -> RegisterResponse:
     started = perf_counter()
-    resolved_person_id = (person_id or "").strip() or uuid4().hex
 
     uploads: list[UploadFile] = []
     if files:
@@ -140,14 +149,21 @@ async def register_person_face(
     for upload in uploads:
         image_bytes = await upload.read()
         command = RegisterFaceCommand(
-            person_id=resolved_person_id,
+            first_name=first_name,
+            last_name=last_name,
+            dni=dni,
             image_bytes=image_bytes,
         )
-        await command_service.handle_register_face(command)
+        event = await command_service.handle_register_face(command)
 
     await usage_log_repository.log_register(
-        person_id=resolved_person_id,
+        person_id=event.person_id,
         duration_ms=int((perf_counter() - started) * 1000),
     )
 
-    return RegisterResponse(person_id=resolved_person_id, enrolled=True)
+    return RegisterResponse(
+        first_name=" ".join(first_name.strip().split()),
+        last_name=" ".join(last_name.strip().split()),
+        dni=dni.strip(),
+        enrolled=True,
+    )

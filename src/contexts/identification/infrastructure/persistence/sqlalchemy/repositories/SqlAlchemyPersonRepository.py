@@ -12,11 +12,16 @@ from src.contexts.identification.domain.model.valueobjects import (
     ConfidenceScore,
     FaceEmbedding,
     PersonId,
+    PersonName,
+    PeruvianDni,
     SimilarityScore,
 )
 from src.contexts.identification.domain.repositories import PersonRepository
 from src.contexts.identification.infrastructure.persistence.sqlalchemy.models.PersonEmbeddingModel import (
     PersonEmbeddingModel,
+)
+from src.contexts.identification.infrastructure.persistence.sqlalchemy.models.PersonModel import (
+    PersonModel,
 )
 
 
@@ -32,14 +37,16 @@ class SqlAlchemyPersonRepository(PersonRepository):
         return vec
 
     async def find_by_id(self, person_id: PersonId) -> PersonAggregate | None:
+        person_model = await self._session.get(PersonModel, person_id.value)
+        if person_model is None:
+            return None
+
         result = await self._session.execute(
             select(PersonEmbeddingModel)
             .where(PersonEmbeddingModel.person_id == person_id.value)
             .order_by(PersonEmbeddingModel.id.asc())
         )
         rows = result.scalars().all()
-        if not rows:
-            return None
 
         samples = tuple(
             FaceSample(
@@ -52,16 +59,49 @@ class SqlAlchemyPersonRepository(PersonRepository):
             )
             for row in rows
         )
-        return PersonAggregate(person_id=person_id, samples=samples)
+        return PersonAggregate(
+            person_id=person_id,
+            first_name=PersonName(person_model.first_name),
+            last_name=PersonName(person_model.last_name),
+            dni=PeruvianDni(person_model.dni),
+            samples=samples,
+        )
+
+    async def find_by_dni(self, dni: PeruvianDni) -> PersonAggregate | None:
+        result = await self._session.execute(
+            select(PersonModel).where(PersonModel.dni == dni.value)
+        )
+        person_model = result.scalar_one_or_none()
+        if person_model is None:
+            return None
+        return await self.find_by_id(PersonId(person_model.person_id))
 
     async def save(self, person: PersonAggregate) -> PersonAggregate:
+        now_epoch = int(datetime.now(UTC).timestamp())
+        existing_person = await self._session.get(PersonModel, person.person_id.value)
+        if existing_person is None:
+            self._session.add(
+                PersonModel(
+                    person_id=person.person_id.value,
+                    first_name=person.first_name.value,
+                    last_name=person.last_name.value,
+                    dni=person.dni.value,
+                    created_at=now_epoch,
+                    updated_at=now_epoch,
+                )
+            )
+        else:
+            existing_person.first_name = person.first_name.value
+            existing_person.last_name = person.last_name.value
+            existing_person.dni = person.dni.value
+            existing_person.updated_at = now_epoch
+
         await self._session.execute(
             delete(PersonEmbeddingModel).where(
                 PersonEmbeddingModel.person_id == person.person_id.value
             )
         )
 
-        now_epoch = int(datetime.now(UTC).timestamp())
         kept_samples = (
             person.samples[-self._max_embeddings_per_person :]
             if len(person.samples) > self._max_embeddings_per_person
@@ -78,7 +118,13 @@ class SqlAlchemyPersonRepository(PersonRepository):
             )
 
         await self._session.flush()
-        return PersonAggregate(person_id=person.person_id, samples=tuple(kept_samples))
+        return PersonAggregate(
+            person_id=person.person_id,
+            first_name=person.first_name,
+            last_name=person.last_name,
+            dni=person.dni,
+            samples=tuple(kept_samples),
+        )
 
     async def find_best_match(self, embedding: FaceEmbedding) -> IdentificationMatchResult | None:
         query_vec = self._normalize(embedding.values)
