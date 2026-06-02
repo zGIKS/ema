@@ -8,24 +8,32 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 from src.contexts.identification.application.internal.commandservices.PersonEnrollmentCommandServiceImpl import (
     PersonEnrollmentCommandServiceImpl,
 )
+from src.contexts.identification.application.internal.queryservices.PersonDirectoryQueryServiceImpl import (
+    PersonDirectoryQueryServiceImpl,
+)
 from src.contexts.identification.application.internal.queryservices.PersonIdentificationQueryServiceImpl import (
     PersonIdentificationQueryServiceImpl,
 )
 from src.contexts.identification.domain.model.commands import RegisterFaceCommand
-from src.contexts.identification.domain.model.queries import IdentifyPersonQuery
+from src.contexts.identification.domain.model.queries import (
+    GetRegisteredPersonsQuery,
+    IdentifyPersonQuery,
+)
 from src.contexts.identification.infrastructure.persistence.sqlalchemy.repositories import (
     SqlAlchemyUsageLogRepository,
 )
 from src.contexts.identification.interfaces.rest.dependencies import (
+    get_person_directory_query_service,
     get_person_enrollment_command_service,
     get_person_identification_query_service,
     get_usage_log_repository,
 )
 from src.contexts.identification.interfaces.rest.resources import (
-    BoundingBoxResource,
     ErrorResponse,
     IdentificationResponse,
     RegisterResponse,
+    RegisteredPersonResource,
+    RegisteredPersonsPageResponse,
 )
 from src.core.exceptions import ValidationError
 
@@ -40,7 +48,7 @@ router = APIRouter(
     response_model=IdentificationResponse,
     status_code=status.HTTP_200_OK,
     summary="Identify person by face image",
-    description="Extracts face embedding from the uploaded image and returns the best matched person.",
+    description="Identifies the best matched registered person and returns only client-safe fields.",
     responses={
         200: {"description": "Identification evaluated successfully"},
         404: {"model": ErrorResponse, "description": "No face detected in image"},
@@ -72,20 +80,55 @@ async def identify_person(
         duration_ms=int((perf_counter() - started) * 1000),
     )
 
-    resource_box = (
-        None
-        if identification.box is None
-        else BoundingBoxResource(
-            x=identification.box.x,
-            y=identification.box.y,
-            w=identification.box.w,
-            h=identification.box.h,
-        )
-    )
     return IdentificationResponse(
-        person_id=identification.person_id.value if identification.person_id else None,
+        uuid=identification.person_id.value if identification.person_id else None,
+        first_name=identification.first_name,
+        last_name=identification.last_name,
+        dni=identification.dni,
+        photo=identification.photo,
         confidence=identification.confidence.value,
-        box=resource_box,
+    )
+
+
+@router.get(
+    "/persons",
+    response_model=RegisteredPersonsPageResponse,
+    status_code=status.HTTP_200_OK,
+    summary="List registered persons",
+    description="Returns a paginated list of registered persons with only client-safe fields.",
+    responses={
+        200: {"description": "Registered persons retrieved successfully"},
+        422: {
+            "model": ErrorResponse,
+            "description": "Invalid pagination parameters",
+        },
+    },
+)
+async def get_registered_persons(
+    query_service: Annotated[
+        PersonDirectoryQueryServiceImpl,
+        Depends(get_person_directory_query_service),
+    ],
+    page: int = 1,
+    page_size: int = 20,
+) -> RegisteredPersonsPageResponse:
+    query = GetRegisteredPersonsQuery(page=page, page_size=page_size)
+    persons_page = await query_service.handle_get_registered_persons(query)
+
+    return RegisteredPersonsPageResponse(
+        items=[
+            RegisteredPersonResource(
+                uuid=person.person_id.value,
+                first_name=person.first_name.value,
+                last_name=person.last_name.value,
+                dni=person.dni.value,
+                photo=person.photo,
+            )
+            for person in persons_page.items
+        ],
+        page=persons_page.page,
+        page_size=persons_page.page_size,
+        total=persons_page.total,
     )
 
 

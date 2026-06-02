@@ -18,6 +18,7 @@ class PersonAggregate:
     first_name: PersonName
     last_name: PersonName
     dni: PeruvianDni
+    photo: str | None
     samples: tuple[FaceSample, ...]
 
     @staticmethod
@@ -26,16 +27,23 @@ class PersonAggregate:
         first_name: PersonName,
         last_name: PersonName,
         dni: PeruvianDni,
+        photo: str | None = None,
     ) -> "PersonAggregate":
         return PersonAggregate(
             person_id=PersonId(str(uuid4())),
             first_name=first_name,
             last_name=last_name,
             dni=dni,
+            photo=photo,
             samples=tuple(),
         )
 
-    def add_sample(self, embedding: FaceEmbedding, max_samples: int) -> "PersonAggregate":
+    def add_sample(
+        self,
+        embedding: FaceEmbedding,
+        max_samples: int,
+        photo: str | None = None,
+    ) -> "PersonAggregate":
         appended = (*self.samples, FaceSample(embedding=embedding))
         if max_samples > 0 and len(appended) > max_samples:
             appended = appended[-max_samples:]
@@ -44,6 +52,7 @@ class PersonAggregate:
             first_name=self.first_name,
             last_name=self.last_name,
             dni=self.dni,
+            photo=photo if photo is not None else self.photo,
             samples=tuple(appended),
         )
 
@@ -58,5 +67,6 @@ class PersonAggregate:
             first_name=first_name,
             last_name=last_name,
             dni=self.dni,
+            photo=self.photo,
             samples=self.samples,
         )

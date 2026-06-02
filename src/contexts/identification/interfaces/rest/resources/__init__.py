@@ -10,10 +10,18 @@ from src.contexts.identification.interfaces.rest.resources.IdentificationRespons
 from src.contexts.identification.interfaces.rest.resources.RegisterResponse import (
     RegisterResponse,
 )
+from src.contexts.identification.interfaces.rest.resources.RegisteredPersonResource import (
+    RegisteredPersonResource,
+)
+from src.contexts.identification.interfaces.rest.resources.RegisteredPersonsPageResponse import (
+    RegisteredPersonsPageResponse,
+)
 
 __all__ = [
     "BoundingBoxResource",
     "ErrorResponse",
     "IdentificationResponse",
     "RegisterResponse",
+    "RegisteredPersonResource",
+    "RegisteredPersonsPageResponse",
 ]

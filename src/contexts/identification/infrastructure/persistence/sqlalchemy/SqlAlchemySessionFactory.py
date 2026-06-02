@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 
+from sqlalchemy import inspect
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -24,6 +25,16 @@ class SqlAlchemySessionFactory:
     async def init_models(self) -> None:
         async with self._engine.begin() as conn:
             await conn.run_sync(BaseModel.metadata.create_all)
+            await conn.run_sync(self._ensure_person_photo_column)
+
+    @staticmethod
+    def _ensure_person_photo_column(connection) -> None:
+        inspector = inspect(connection)
+        columns = {column["name"] for column in inspector.get_columns("persons")}
+        if "photo_base64" not in columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE persons ADD COLUMN photo_base64 TEXT"
+            )
 
     async def session(self) -> AsyncIterator[AsyncSession]:
         async with self._maker() as db_session:

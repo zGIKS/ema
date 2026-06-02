@@ -31,6 +31,10 @@ class PersonIdentificationQueryServiceImpl(PersonIdentificationQueryService):
         if match is None:
             return IdentificationResult(
                 person_id=None,
+                first_name=None,
+                last_name=None,
+                dni=None,
+                photo=None,
                 confidence=ConfidenceScore(0.0),
                 box=extraction.box,
             )
@@ -42,8 +46,17 @@ class PersonIdentificationQueryServiceImpl(PersonIdentificationQueryService):
             0.0,
             min(1.0, (match.similarity.value + 1.0) / 2.0),
         )
+        person = (
+            await self._person_repository.find_by_id(match.person_id)
+            if recognized_person is not None
+            else None
+        )
         return IdentificationResult(
             person_id=recognized_person,
+            first_name=person.first_name.value if person is not None else None,
+            last_name=person.last_name.value if person is not None else None,
+            dni=person.dni.value if person is not None else None,
+            photo=person.photo if person is not None else None,
             confidence=ConfidenceScore(confidence_value if recognized_person else 0.0),
             box=extraction.box,
         )

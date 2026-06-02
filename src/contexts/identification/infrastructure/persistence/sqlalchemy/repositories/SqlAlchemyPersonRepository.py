@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import numpy as np
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.contexts.identification.domain.model.entities import FaceSample, PersonAggregate
@@ -64,6 +64,7 @@ class SqlAlchemyPersonRepository(PersonRepository):
             first_name=PersonName(person_model.first_name),
             last_name=PersonName(person_model.last_name),
             dni=PeruvianDni(person_model.dni),
+            photo=person_model.photo_base64,
             samples=samples,
         )
 
@@ -86,6 +87,7 @@ class SqlAlchemyPersonRepository(PersonRepository):
                     first_name=person.first_name.value,
                     last_name=person.last_name.value,
                     dni=person.dni.value,
+                    photo_base64=person.photo,
                     created_at=now_epoch,
                     updated_at=now_epoch,
                 )
@@ -94,6 +96,7 @@ class SqlAlchemyPersonRepository(PersonRepository):
             existing_person.first_name = person.first_name.value
             existing_person.last_name = person.last_name.value
             existing_person.dni = person.dni.value
+            existing_person.photo_base64 = person.photo
             existing_person.updated_at = now_epoch
 
         await self._session.execute(
@@ -123,6 +126,7 @@ class SqlAlchemyPersonRepository(PersonRepository):
             first_name=person.first_name,
             last_name=person.last_name,
             dni=person.dni,
+            photo=person.photo,
             samples=tuple(kept_samples),
         )
 
@@ -154,4 +158,36 @@ class SqlAlchemyPersonRepository(PersonRepository):
             person_id=PersonId(best_person_id),
             similarity=SimilarityScore(best_similarity),
             confidence=ConfidenceScore(confidence),
+        )
+
+    async def find_paginated(
+        self,
+        *,
+        page: int,
+        page_size: int,
+    ) -> tuple[tuple[PersonAggregate, ...], int]:
+        offset = (page - 1) * page_size
+        total_result = await self._session.execute(select(func.count()).select_from(PersonModel))
+        total = int(total_result.scalar_one())
+
+        result = await self._session.execute(
+            select(PersonModel)
+            .order_by(PersonModel.created_at.desc(), PersonModel.person_id.asc())
+            .offset(offset)
+            .limit(page_size)
+        )
+        person_models = result.scalars().all()
+        return (
+            tuple(
+                PersonAggregate(
+                    person_id=PersonId(person_model.person_id),
+                    first_name=PersonName(person_model.first_name),
+                    last_name=PersonName(person_model.last_name),
+                    dni=PeruvianDni(person_model.dni),
+                    photo=person_model.photo_base64,
+                    samples=tuple(),
+                )
+                for person_model in person_models
+            ),
+            total,
         )

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+
 from src.contexts.identification.domain.model.commands import RegisterFaceCommand
 from src.contexts.identification.domain.model.entities import PersonAggregate
 from src.contexts.identification.domain.model.events import FaceRegisteredEvent
@@ -34,6 +36,7 @@ class PersonEnrollmentCommandServiceImpl(PersonEnrollmentCommandService):
         first_name = PersonName(command.first_name)
         last_name = PersonName(command.last_name)
         dni = PeruvianDni(command.dni)
+        photo = base64.b64encode(command.image_bytes).decode("ascii")
         person = await self._person_repository.find_by_dni(dni)
         aggregate = (
             person.update_identity(first_name=first_name, last_name=last_name)
@@ -42,11 +45,13 @@ class PersonEnrollmentCommandServiceImpl(PersonEnrollmentCommandService):
                 first_name=first_name,
                 last_name=last_name,
                 dni=dni,
+                photo=photo,
             )
         )
         updated = aggregate.add_sample(
             embedding=extraction.embedding,
             max_samples=self._max_embeddings_per_person,
+            photo=photo,
         )
         await self._person_repository.save(updated)
         return FaceRegisteredEvent(person_id=updated.person_id.value)

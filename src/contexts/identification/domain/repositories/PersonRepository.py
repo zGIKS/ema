@@ -23,3 +23,11 @@ class PersonRepository(Protocol):
 
     async def find_best_match(self, embedding: FaceEmbedding) -> IdentificationMatchResult | None:
         ...
+
+    async def find_paginated(
+        self,
+        *,
+        page: int,
+        page_size: int,
+    ) -> tuple[tuple[PersonAggregate, ...], int]:
+        ...

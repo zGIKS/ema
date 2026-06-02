@@ -16,6 +16,9 @@ from src.contexts.identification.application.internal.outboundservices.acl.FaceE
 from src.contexts.identification.application.internal.queryservices.PersonIdentificationQueryServiceImpl import (
     PersonIdentificationQueryServiceImpl,
 )
+from src.contexts.identification.application.internal.queryservices.PersonDirectoryQueryServiceImpl import (
+    PersonDirectoryQueryServiceImpl,
+)
 from src.contexts.identification.domain.services import FaceEmbeddingExtractionQueryService
 from src.contexts.identification.infrastructure.ai.insightface_engine import (
     InsightFaceRecognitionEngine,
@@ -112,6 +115,16 @@ async def get_person_identification_query_service(
         extraction_query_service=extraction_service,
         match_threshold=settings.match_threshold,
     )
+
+
+async def get_person_directory_query_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> PersonDirectoryQueryServiceImpl:
+    repository = SqlAlchemyPersonRepository(
+        session=session,
+        max_embeddings_per_person=settings.max_embeddings_per_person,
+    )
+    return PersonDirectoryQueryServiceImpl(person_repository=repository)
 
 
 async def get_usage_log_repository(

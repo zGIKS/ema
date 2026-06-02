@@ -4,6 +4,9 @@ from src.contexts.identification.domain.services.FaceEmbeddingExtractionQuerySer
 from src.contexts.identification.domain.services.PersonEnrollmentCommandService import (
     PersonEnrollmentCommandService,
 )
+from src.contexts.identification.domain.services.PersonDirectoryQueryService import (
+    PersonDirectoryQueryService,
+)
 from src.contexts.identification.domain.services.PersonIdentificationQueryService import (
     PersonIdentificationQueryService,
 )
@@ -11,5 +14,6 @@ from src.contexts.identification.domain.services.PersonIdentificationQueryServic
 __all__ = [
     "FaceEmbeddingExtractionQueryService",
     "PersonEnrollmentCommandService",
+    "PersonDirectoryQueryService",
     "PersonIdentificationQueryService",
 ]
