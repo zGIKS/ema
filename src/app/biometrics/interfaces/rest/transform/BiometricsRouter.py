@@ -9,8 +9,8 @@ from src.app.biometrics.application.internal.queryservices.PersonIdentificationQ
     PersonIdentificationQueryServiceImpl,
 )
 from src.app.biometrics.domain.model.queries import IdentifyPersonQuery
-from src.app.identity.infrastructure.persistence.sqlalchemy.repositories import (
-    SqlAlchemyUsageLogRepository,
+from src.app.identity.infrastructure.persistence.mongodb.repositories.MongoDbUsageLogRepository import (
+    MongoDbUsageLogRepository,
 )
 from src.app.biometrics.interfaces.rest.resources import IdentificationResponse
 from src.app.biometrics.interfaces.rest.dependencies import (
@@ -40,7 +40,7 @@ async def identify_person(
         Depends(get_person_identification_query_service),
     ],
     usage_log_repository: Annotated[
-        SqlAlchemyUsageLogRepository,
+        MongoDbUsageLogRepository,
         Depends(get_usage_log_repository),
     ],
     file: UploadFile = File(..., description="Image file that contains one face"),

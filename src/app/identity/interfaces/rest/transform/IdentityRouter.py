@@ -23,8 +23,8 @@ from src.app.identity.domain.model.queries import GetRegisteredPersonsQuery
 from src.app.identity.application.internal.queryservices.PersonDirectoryQueryServiceImpl import (
     PersonDirectoryQueryServiceImpl,
 )
-from src.app.identity.infrastructure.persistence.sqlalchemy.repositories import (
-    SqlAlchemyUsageLogRepository,
+from src.app.identity.infrastructure.persistence.mongodb.repositories.MongoDbUsageLogRepository import (
+    MongoDbUsageLogRepository,
 )
 from src.app.identity.interfaces.rest.dependencies import (
     get_person_directory_query_service,
@@ -90,7 +90,7 @@ async def register_person_face(
         Depends(get_person_enrollment_command_service),
     ],
     usage_log_repository: Annotated[
-        SqlAlchemyUsageLogRepository,
+        MongoDbUsageLogRepository,
         Depends(get_usage_log_repository),
     ],
     dni: str = Form(..., description="Peruvian DNI", examples=["12345678"]),

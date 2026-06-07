@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import AsyncIterator
 from typing import Annotated
 
 from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from src.app.identity.application.internal.commandservices.PersonEnrollmentCommandServiceImpl import (
     PersonEnrollmentCommandServiceImpl,
@@ -23,30 +22,25 @@ from src.app.biometrics.infrastructure.ai.insightface_engine import (
 from src.app.identity.application.internal.queryservices.PersonDirectoryQueryServiceImpl import (
     PersonDirectoryQueryServiceImpl,
 )
-from src.app.identity.infrastructure.persistence.sqlalchemy import (
-    SqlAlchemySessionFactory,
+from src.app.identity.infrastructure.persistence.mongodb.MongoDbClientFactory import (
+    MongoDbClientFactory,
 )
-from src.app.identity.infrastructure.persistence.sqlalchemy.repositories import (
-    SqlAlchemyPersonRepository,
-    SqlAlchemyUsageLogRepository,
+from src.app.identity.infrastructure.persistence.mongodb.repositories.MongoDbPersonRepository import (
+    MongoDbPersonRepository,
+)
+from src.app.identity.infrastructure.persistence.mongodb.repositories.MongoDbUsageLogRepository import (
+    MongoDbUsageLogRepository,
 )
 from src.app.shared.config import settings
 
 
 @lru_cache(maxsize=1)
-def _session_factory() -> SqlAlchemySessionFactory:
-    return SqlAlchemySessionFactory(db_path=settings.db_path)
+def _client_factory() -> MongoDbClientFactory:
+    return MongoDbClientFactory(db_url=settings.db_url, db_name=settings.db_name)
 
 
-async def get_db_session() -> AsyncIterator[AsyncSession]:
-    async for session in _session_factory().session():
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-        break
+async def get_database() -> AsyncIOMotorDatabase:
+    return _client_factory().database()
 
 
 def get_embedding_extraction_query_service() -> FaceEmbeddingExtractionQueryService:
@@ -77,7 +71,7 @@ def get_dni_lookup_query_service() -> DecolectaDniLookupService:
 
 
 async def get_person_enrollment_command_service(
-    session: Annotated[AsyncSession, Depends(get_db_session)],
+    database: Annotated[AsyncIOMotorDatabase, Depends(get_database)],
     extraction_service: Annotated[
         FaceEmbeddingExtractionService,
         Depends(get_face_embedding_extraction_acl_service),
@@ -87,8 +81,8 @@ async def get_person_enrollment_command_service(
         Depends(get_dni_lookup_query_service),
     ],
 ) -> PersonEnrollmentCommandServiceImpl:
-    repository = SqlAlchemyPersonRepository(
-        session=session,
+    repository = MongoDbPersonRepository(
+        database=database,
         max_embeddings_per_person=settings.max_embeddings_per_person,
     )
     return PersonEnrollmentCommandServiceImpl(
@@ -98,21 +92,23 @@ async def get_person_enrollment_command_service(
         max_embeddings_per_person=settings.max_embeddings_per_person,
         match_threshold=settings.match_threshold,
     )
+
+
 async def get_person_directory_query_service(
-    session: Annotated[AsyncSession, Depends(get_db_session)],
+    database: Annotated[AsyncIOMotorDatabase, Depends(get_database)],
 ) -> PersonDirectoryQueryServiceImpl:
-    repository = SqlAlchemyPersonRepository(
-        session=session,
+    repository = MongoDbPersonRepository(
+        database=database,
         max_embeddings_per_person=settings.max_embeddings_per_person,
     )
     return PersonDirectoryQueryServiceImpl(person_repository=repository)
 
 
 async def get_usage_log_repository(
-    session: Annotated[AsyncSession, Depends(get_db_session)],
-) -> SqlAlchemyUsageLogRepository:
-    return SqlAlchemyUsageLogRepository(session=session)
+    database: Annotated[AsyncIOMotorDatabase, Depends(get_database)],
+) -> MongoDbUsageLogRepository:
+    return MongoDbUsageLogRepository(database=database)
 
 
 async def init_database() -> None:
-    await _session_factory().init_models()
+    await _client_factory().init_database()

@@ -12,7 +12,8 @@ class Settings(BaseSettings):
     engine: str
     decolecta_api_key: str
     decolecta_base_url: str
-    db_path: str
+    db_url: str
+    db_name: str
 
     insightface_model: str = "buffalo_l"
     insightface_det_size: tuple[int, int] = (640, 640)

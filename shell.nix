@@ -14,8 +14,7 @@ pkgs.mkShell {
       pydantic-settings
       python-dotenv
       python-multipart
-      sqlalchemy
-      aiosqlite
+      motor
       numpy
       httpx
       insightface
