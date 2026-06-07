@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
-from src.contexts.identification.interfaces.rest.dependencies import init_database
-from src.contexts.identification.interfaces.rest.transform.IdentificationRouter import (
+from src.app.identification.interfaces.rest.dependencies import init_database
+from src.app.identification.interfaces.rest.transform.IdentificationRouter import (
     router as identification_router,
 )
-from src.core.exceptions import DomainError, NotFoundError, ValidationError
+from src.shared.exceptions import DomainError, NotFoundError, ValidationError
 
 
 def create_app() -> FastAPI:

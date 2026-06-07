@@ -6,7 +6,7 @@ FastAPI service that supports:
 - **Identification**: compute an embedding and match it against enrolled identities
 - **Enrollment**: register a new person with one or more reference images
 
-This repo is structured as a bounded context under `src/contexts/identification/` with strict separation:
+This repo is structured as a bounded context under `src/app/identification/` with shared code in `src/shared/` and strict separation:
 
 - `domain/`: value objects, commands, ports (interfaces)
 - `application/`: command handlers (orchestrate the use case)
@@ -32,7 +32,7 @@ Alternatively, with `uv` (non-Nix environments):
 ```bash
 uv sync
 
-# Optional: real recognition engine
+# Required: real recognition engine
 uv sync --extra ml
 ```
 
@@ -61,9 +61,7 @@ Note: images are not stored; only embeddings are persisted.
 - You can also send multiple images using `files` (repeat the form field)
 - `POST /identify` with `file`
 
-Note: the current AI implementation is a **stub** (deterministic pseudo-embedding) so the architecture is runnable without heavyweight ML dependencies.
-
-## Real recognition (recommended)
+## Real recognition
 
 This repo includes an optional InsightFace-based engine (real face detection + embeddings).
 
@@ -75,6 +73,4 @@ FR_ENGINE=insightface uvicorn src.main:app --reload --port 8000
 
 Engine selection:
 
-- `FR_ENGINE=auto` (default): uses InsightFace if installed, else falls back to stub
-- `FR_ENGINE=stub`: always use stub
-- `FR_ENGINE=insightface`: require InsightFace deps (fails fast if missing)
+- `FR_ENGINE=insightface` (default): uses InsightFace only
