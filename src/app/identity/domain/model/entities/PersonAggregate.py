@@ -4,12 +4,10 @@ from dataclasses import dataclass
 from uuid import uuid4
 
 from src.app.identity.domain.model.entities.FaceSample import FaceSample
-from src.app.identity.domain.model.valueobjects import (
-    FaceEmbedding,
-    PersonId,
-    PersonName,
-    PeruvianDni,
-)
+from src.app.biometrics.domain.model.valueobjects import FaceEmbedding
+from src.app.identity.domain.model.valueobjects.PersonId import PersonId
+from src.app.identity.domain.model.valueobjects.PersonName import PersonName
+from src.app.identity.domain.model.valueobjects.PeruvianDni import PeruvianDni
 
 
 @dataclass(frozen=True, slots=True)

@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Protocol
 
+from src.app.biometrics.domain.model.valueobjects import FaceEmbedding
 from src.app.identity.domain.model.entities import PersonAggregate
 from src.app.biometrics.domain.model.results import IdentificationMatchResult
 from src.app.identity.domain.model.valueobjects import (
-    FaceEmbedding,
     PersonId,
     PeruvianDni,
 )

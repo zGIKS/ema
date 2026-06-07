@@ -7,14 +7,13 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.identity.domain.model.entities import FaceSample, PersonAggregate
+from src.app.biometrics.domain.model.valueobjects import FaceEmbedding
+from src.app.biometrics.domain.model.valueobjects import ConfidenceScore, SimilarityScore
 from src.app.biometrics.domain.model.results import IdentificationMatchResult
 from src.app.identity.domain.model.valueobjects import (
-    ConfidenceScore,
-    FaceEmbedding,
     PersonId,
     PersonName,
     PeruvianDni,
-    SimilarityScore,
 )
 from src.app.identity.domain.repositories import PersonRepository
 from src.app.identity.infrastructure.persistence.sqlalchemy.models.PersonEmbeddingModel import (
