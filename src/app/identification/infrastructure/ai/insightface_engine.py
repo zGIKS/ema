@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from src.shared.exceptions import NotFoundError, ValidationError
+from src.app.shared.exceptions import NotFoundError, ValidationError
 from src.app.identification.domain.model.results import FaceExtractionResult
 from src.app.identification.domain.model.valueobjects import BoundingBox, FaceEmbedding
 from src.app.identification.domain.services import FaceEmbeddingExtractionQueryService

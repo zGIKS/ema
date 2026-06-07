@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
-from src.shared.exceptions import ValidationError
+from src.app.shared.exceptions import ValidationError
 
 
 @dataclass(frozen=True, slots=True)

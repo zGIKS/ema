@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from src.shared.exceptions import ValidationError
+from src.app.shared.exceptions import ValidationError
 
 
 @dataclass(frozen=True, slots=True)

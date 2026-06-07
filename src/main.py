@@ -5,7 +5,7 @@ from src.app.identification.interfaces.rest.dependencies import init_database
 from src.app.identification.interfaces.rest.transform.IdentificationRouter import (
     router as identification_router,
 )
-from src.shared.exceptions import DomainError, NotFoundError, ValidationError
+from src.app.shared.exceptions import DomainError, NotFoundError, ValidationError
 
 
 def create_app() -> FastAPI:

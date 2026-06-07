@@ -30,7 +30,7 @@ from src.app.identification.infrastructure.persistence.sqlalchemy.repositories i
     SqlAlchemyPersonRepository,
     SqlAlchemyUsageLogRepository,
 )
-from src.shared.config import settings
+from src.app.shared.config import settings
 
 
 @lru_cache(maxsize=1)
@@ -50,9 +50,9 @@ async def get_db_session() -> AsyncIterator[AsyncSession]:
 
 
 def get_embedding_extraction_query_service() -> FaceEmbeddingExtractionQueryService:
-    engine_setting = (settings.engine or "insightface").strip().lower()
+    engine_setting = settings.engine.strip().lower()
     if engine_setting != "insightface":
-        engine_setting = "insightface"
+        raise ValueError("FR_ENGINE must be set to insightface")
 
     return InsightFaceRecognitionEngine(
         model_name=settings.insightface_model,

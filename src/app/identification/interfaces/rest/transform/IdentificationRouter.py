@@ -35,7 +35,7 @@ from src.app.identification.interfaces.rest.resources import (
     RegisteredPersonResource,
     RegisteredPersonsPageResponse,
 )
-from src.shared.exceptions import ValidationError
+from src.app.shared.exceptions import ValidationError
 
 router = APIRouter(
     prefix="/api/v1/identification",
