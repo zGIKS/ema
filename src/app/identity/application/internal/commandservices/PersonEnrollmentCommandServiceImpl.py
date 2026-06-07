@@ -26,11 +26,13 @@ class PersonEnrollmentCommandServiceImpl(PersonEnrollmentCommandService):
         extraction_query_service: FaceEmbeddingExtractionQueryService,
         dni_lookup_query_service: DniLookupQueryService,
         max_embeddings_per_person: int,
+        match_threshold: float,
     ) -> None:
         self._person_repository = person_repository
         self._extraction_query_service = extraction_query_service
         self._dni_lookup_query_service = dni_lookup_query_service
         self._max_embeddings_per_person = max(1, int(max_embeddings_per_person))
+        self._match_threshold = float(match_threshold)
 
     async def handle_register_face(
         self,
@@ -79,6 +81,11 @@ class PersonEnrollmentCommandServiceImpl(PersonEnrollmentCommandService):
             extraction = await self._extraction_query_service.handle_extract_embedding(
                 image_bytes
             )
+            if not updated.matches_embedding(
+                extraction.embedding,
+                threshold=self._match_threshold,
+            ):
+                raise ConflictError("Face does not match the enrolled person")
             updated = updated.add_sample(
                 embedding=extraction.embedding,
                 max_samples=self._max_embeddings_per_person,

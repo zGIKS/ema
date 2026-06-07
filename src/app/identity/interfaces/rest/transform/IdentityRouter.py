@@ -122,6 +122,15 @@ async def register_person_face(
     status_code=status.HTTP_200_OK,
     summary="Add face samples",
     description="Adds more photos to an existing person without changing identity data.",
+    responses={
+        200: {"description": "Samples added successfully"},
+        404: {"model": ErrorResponse, "description": "Person not found"},
+        409: {
+            "model": ErrorResponse,
+            "description": "Uploaded face does not match the enrolled person",
+        },
+        422: {"model": ErrorResponse, "description": "Invalid request"},
+    },
 )
 async def add_person_face_samples(
     command_service: Annotated[

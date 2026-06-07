@@ -96,6 +96,7 @@ async def get_person_enrollment_command_service(
         extraction_query_service=extraction_service,
         dni_lookup_query_service=dni_lookup_service,
         max_embeddings_per_person=settings.max_embeddings_per_person,
+        match_threshold=settings.match_threshold,
     )
 async def get_person_directory_query_service(
     session: Annotated[AsyncSession, Depends(get_db_session)],
