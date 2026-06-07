@@ -4,7 +4,8 @@ Minimal FastAPI service for face enrollment and identification.
 
 Structure:
 
-- `src/app/identification/` for the bounded context
+- `src/app/identity/` for registration and DNI validation
+- `src/app/biometrics/` for face matching and identification
 - `src/app/shared/` for shared app code
 
 ## Run
@@ -29,4 +30,6 @@ Required `.env` keys:
 - Images are not stored.
 - Only embeddings are persisted in SQLite.
 - `POST /register` creates a person once using DNI + one image.
+- `GET /api/v1/biometrics/identify` is the biometric read path.
+- `GET /api/v1/identity/persons` is the identity read path.
 - `POST /persons/{person_id}/samples` adds more photos.
