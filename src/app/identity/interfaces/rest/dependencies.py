@@ -16,12 +16,12 @@ from src.app.identity.application.internal.outboundservices.acl.DecolectaDniLook
 from src.app.biometrics.application.internal.outboundservices.acl.FaceEmbeddingExtractionService import (
     FaceEmbeddingExtractionService,
 )
-from src.app.identity.application.internal.queryservices.PersonDirectoryQueryServiceImpl import (
-    PersonDirectoryQueryServiceImpl,
-)
 from src.app.biometrics.domain.services import FaceEmbeddingExtractionQueryService
 from src.app.biometrics.infrastructure.ai.insightface_engine import (
     InsightFaceRecognitionEngine,
+)
+from src.app.identity.application.internal.queryservices.PersonDirectoryQueryServiceImpl import (
+    PersonDirectoryQueryServiceImpl,
 )
 from src.app.identity.infrastructure.persistence.sqlalchemy import (
     SqlAlchemySessionFactory,
@@ -97,26 +97,6 @@ async def get_person_enrollment_command_service(
         dni_lookup_query_service=dni_lookup_service,
         max_embeddings_per_person=settings.max_embeddings_per_person,
     )
-
-
-async def get_person_identification_query_service(
-    session: Annotated[AsyncSession, Depends(get_db_session)],
-    extraction_service: Annotated[
-        FaceEmbeddingExtractionService,
-        Depends(get_face_embedding_extraction_acl_service),
-    ],
-) -> PersonIdentificationQueryServiceImpl:
-    repository = SqlAlchemyPersonRepository(
-        session=session,
-        max_embeddings_per_person=settings.max_embeddings_per_person,
-    )
-    return PersonIdentificationQueryServiceImpl(
-        person_repository=repository,
-        extraction_query_service=extraction_service,
-        match_threshold=settings.match_threshold,
-    )
-
-
 async def get_person_directory_query_service(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> PersonDirectoryQueryServiceImpl:

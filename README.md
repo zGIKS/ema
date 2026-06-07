@@ -29,7 +29,7 @@ Required `.env` keys:
 - InsightFace is required.
 - Images are not stored.
 - Only embeddings are persisted in SQLite.
-- `POST /register` creates a person once using DNI + one image.
+- `POST /api/v1/identity/register` creates a person once using DNI + one image.
 - `GET /api/v1/biometrics/identify` is the biometric read path.
 - `GET /api/v1/identity/persons` is the identity read path.
-- `POST /persons/{person_id}/samples` adds more photos.
+- `POST /api/v1/identity/persons/{person_id}/samples` adds more photos.

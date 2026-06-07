@@ -15,7 +15,6 @@ from src.app.identity.domain.model.commands import (
 from src.app.identity.domain.model.valueobjects import PersonId
 from src.app.identity.interfaces.rest.resources import (
     AddFaceSamplesResponse,
-    ErrorResponse,
     RegisterResponse,
     RegisteredPersonResource,
     RegisteredPersonsPageResponse,
@@ -32,6 +31,7 @@ from src.app.identity.interfaces.rest.dependencies import (
     get_person_enrollment_command_service,
     get_usage_log_repository,
 )
+from src.app.shared.interfaces.rest.resources import ErrorResponse
 from src.app.shared.exceptions import ValidationError
 
 router = APIRouter(prefix="/api/v1/identity", tags=["Identity"])

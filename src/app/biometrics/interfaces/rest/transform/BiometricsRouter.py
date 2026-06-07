@@ -12,14 +12,12 @@ from src.app.biometrics.domain.model.queries import IdentifyPersonQuery
 from src.app.identity.infrastructure.persistence.sqlalchemy.repositories import (
     SqlAlchemyUsageLogRepository,
 )
-from src.app.biometrics.interfaces.rest.resources import (
-    ErrorResponse,
-    IdentificationResponse,
-)
+from src.app.biometrics.interfaces.rest.resources import IdentificationResponse
 from src.app.biometrics.interfaces.rest.dependencies import (
     get_person_identification_query_service,
     get_usage_log_repository,
 )
+from src.app.shared.interfaces.rest.resources import ErrorResponse
 
 router = APIRouter(prefix="/api/v1/biometrics", tags=["Biometrics"])
 
