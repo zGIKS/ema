@@ -5,7 +5,7 @@ from src.app.identification.interfaces.rest.dependencies import init_database
 from src.app.identification.interfaces.rest.transform.IdentificationRouter import (
     router as identification_router,
 )
-from src.app.shared.exceptions import DomainError, NotFoundError, ValidationError
+from src.app.shared.exceptions import ConflictError, DomainError, NotFoundError, ValidationError
 
 
 def create_app() -> FastAPI:
@@ -23,6 +23,10 @@ def create_app() -> FastAPI:
     @app.exception_handler(NotFoundError)
     async def _not_found_error_handler(_request, exc: NotFoundError):
         return JSONResponse(status_code=404, content={"detail": str(exc)})
+
+    @app.exception_handler(ConflictError)
+    async def _conflict_error_handler(_request, exc: ConflictError):
+        return JSONResponse(status_code=409, content={"detail": str(exc)})
 
     @app.exception_handler(DomainError)
     async def _domain_error_handler(_request, exc: DomainError):

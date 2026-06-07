@@ -14,11 +14,15 @@ from src.app.identification.application.internal.queryservices.PersonDirectoryQu
 from src.app.identification.application.internal.queryservices.PersonIdentificationQueryServiceImpl import (
     PersonIdentificationQueryServiceImpl,
 )
-from src.app.identification.domain.model.commands import RegisterFaceCommand
+from src.app.identification.domain.model.commands import (
+    AddPersonFaceSamplesCommand,
+    RegisterFaceCommand,
+)
 from src.app.identification.domain.model.queries import (
     GetRegisteredPersonsQuery,
     IdentifyPersonQuery,
 )
+from src.app.identification.domain.model.valueobjects import PersonId
 from src.app.identification.infrastructure.persistence.sqlalchemy.repositories import (
     SqlAlchemyUsageLogRepository,
 )
@@ -29,6 +33,7 @@ from src.app.identification.interfaces.rest.dependencies import (
     get_usage_log_repository,
 )
 from src.app.identification.interfaces.rest.resources import (
+    AddFaceSamplesResponse,
     ErrorResponse,
     IdentificationResponse,
     RegisterResponse,
@@ -136,13 +141,14 @@ async def get_registered_persons(
     "/register",
     response_model=RegisterResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Enroll person face samples",
-    description="Registers one or many face images for a person using first name, last name and Peruvian DNI. The UUID person id is generated and managed internally.",
+    summary="Register a person",
+    description="Creates a new person using first name, last name, DNI and a single face image. DNI must be unique.",
     responses={
         201: {"description": "Face samples enrolled"},
+        409: {"model": ErrorResponse, "description": "DNI already exists"},
         422: {
             "model": ErrorResponse,
-            "description": "No files provided or invalid input payload",
+            "description": "Invalid input payload",
         },
     },
 )
@@ -170,34 +176,24 @@ async def register_person_face(
         description="Peruvian DNI. Must contain exactly 8 digits.",
         examples=["12345678"],
     ),
-    files: list[UploadFile] | None = File(
-        default=None,
-        description="Optional list of image files. Repeat the 'files' field to send many.",
-    ),
     file: UploadFile | None = File(
         default=None,
-        description="Optional single image file. Can be used together with files[] input.",
+        description="Single image file used to register the person.",
     ),
 ) -> RegisterResponse:
     started = perf_counter()
 
-    uploads: list[UploadFile] = []
-    if files:
-        uploads.extend(files)
-    if file is not None:
-        uploads.append(file)
-    if not uploads:
-        raise ValidationError("No file(s) uploaded")
+    if file is None:
+        raise ValidationError("file is required")
 
-    for upload in uploads:
-        image_bytes = await upload.read()
-        command = RegisterFaceCommand(
-            first_name=first_name,
-            last_name=last_name,
-            dni=dni,
-            image_bytes=image_bytes,
-        )
-        event = await command_service.handle_register_face(command)
+    image_bytes = await file.read()
+    command = RegisterFaceCommand(
+        first_name=first_name,
+        last_name=last_name,
+        dni=dni,
+        image_bytes=image_bytes,
+    )
+    event = await command_service.handle_register_face(command)
 
     await usage_log_repository.log_register(
         person_id=event.person_id,
@@ -209,4 +205,51 @@ async def register_person_face(
         last_name=" ".join(last_name.strip().split()),
         dni=dni.strip(),
         enrolled=True,
+    )
+
+
+@router.post(
+    "/persons/{person_id}/samples",
+    response_model=AddFaceSamplesResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Add face samples",
+    description="Adds extra face images to an existing person without changing identity data.",
+    responses={
+        200: {"description": "Face samples added successfully"},
+        404: {"model": ErrorResponse, "description": "Person not found"},
+        422: {"model": ErrorResponse, "description": "Invalid input payload"},
+    },
+)
+async def add_person_face_samples(
+    command_service: Annotated[
+        PersonEnrollmentCommandServiceImpl,
+        Depends(get_person_enrollment_command_service),
+    ],
+    person_id: str,
+    files: list[UploadFile] | None = File(
+        default=None,
+        description="Image files to add to the person. Repeat the field to send many.",
+    ),
+    file: UploadFile | None = File(
+        default=None,
+        description="Optional single image file.",
+    ),
+) -> AddFaceSamplesResponse:
+    uploads: list[UploadFile] = []
+    if files:
+        uploads.extend(files)
+    if file is not None:
+        uploads.append(file)
+    if not uploads:
+        raise ValidationError("No file(s) uploaded")
+
+    command = AddPersonFaceSamplesCommand(
+        person_id=PersonId(person_id),
+        image_bytes_list=tuple([await upload.read() for upload in uploads]),
+    )
+    person = await command_service.handle_add_face_samples(command)
+
+    return AddFaceSamplesResponse(
+        person_id=person.person_id.value,
+        total_samples=len(person.samples),
     )

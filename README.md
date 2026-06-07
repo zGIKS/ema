@@ -19,3 +19,5 @@ uvicorn src.main:app --host 0.0.0.0 --port 8080
 - InsightFace is required.
 - Images are not stored.
 - Only embeddings are persisted in SQLite.
+- `POST /register` creates a person once.
+- `POST /persons/{person_id}/samples` adds more photos.

@@ -42,7 +42,6 @@ class PersonAggregate:
         self,
         embedding: FaceEmbedding,
         max_samples: int,
-        photo: str | None = None,
     ) -> "PersonAggregate":
         appended = (*self.samples, FaceSample(embedding=embedding))
         if max_samples > 0 and len(appended) > max_samples:
@@ -52,21 +51,6 @@ class PersonAggregate:
             first_name=self.first_name,
             last_name=self.last_name,
             dni=self.dni,
-            photo=photo if photo is not None else self.photo,
-            samples=tuple(appended),
-        )
-
-    def update_identity(
-        self,
-        *,
-        first_name: PersonName,
-        last_name: PersonName,
-    ) -> "PersonAggregate":
-        return PersonAggregate(
-            person_id=self.person_id,
-            first_name=first_name,
-            last_name=last_name,
-            dni=self.dni,
             photo=self.photo,
-            samples=self.samples,
+            samples=tuple(appended),
         )

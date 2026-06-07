@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import base64
 
-from src.app.identification.domain.model.commands import RegisterFaceCommand
+from src.app.shared.exceptions import ConflictError, NotFoundError
+from src.app.identification.domain.model.commands import (
+    AddPersonFaceSamplesCommand,
+    RegisterFaceCommand,
+)
 from src.app.identification.domain.model.entities import PersonAggregate
 from src.app.identification.domain.model.events import FaceRegisteredEvent
 from src.app.identification.domain.model.valueobjects import PersonName, PeruvianDni
@@ -38,20 +42,39 @@ class PersonEnrollmentCommandServiceImpl(PersonEnrollmentCommandService):
         dni = PeruvianDni(command.dni)
         photo = base64.b64encode(command.image_bytes).decode("ascii")
         person = await self._person_repository.find_by_dni(dni)
-        aggregate = (
-            person.update_identity(first_name=first_name, last_name=last_name)
-            if person is not None
-            else PersonAggregate.create(
-                first_name=first_name,
-                last_name=last_name,
-                dni=dni,
-                photo=photo,
-            )
+
+        if person is not None:
+            raise ConflictError("DNI already enrolled")
+
+        aggregate = PersonAggregate.create(
+            first_name=first_name,
+            last_name=last_name,
+            dni=dni,
+            photo=photo,
         )
         updated = aggregate.add_sample(
             embedding=extraction.embedding,
             max_samples=self._max_embeddings_per_person,
-            photo=photo,
         )
-        await self._person_repository.save(updated)
-        return FaceRegisteredEvent(person_id=updated.person_id.value)
+        saved = await self._person_repository.save(updated)
+        return FaceRegisteredEvent(person_id=saved.person_id.value)
+
+    async def handle_add_face_samples(
+        self,
+        command: AddPersonFaceSamplesCommand,
+    ) -> PersonAggregate:
+        person = await self._person_repository.find_by_id(command.person_id)
+        if person is None:
+            raise NotFoundError("Person not found")
+
+        updated = person
+        for image_bytes in command.image_bytes_list:
+            extraction = await self._extraction_query_service.handle_extract_embedding(
+                image_bytes
+            )
+            updated = updated.add_sample(
+                embedding=extraction.embedding,
+                max_samples=self._max_embeddings_per_person,
+            )
+
+        return await self._person_repository.save(updated)
