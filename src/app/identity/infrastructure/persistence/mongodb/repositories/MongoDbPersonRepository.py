@@ -35,7 +35,7 @@ class MongoDbPersonRepository(PersonRepository):
             first_name=PersonName(doc["first_name"]),
             last_name=PersonName(doc["last_name"]),
             dni=PeruvianDni(doc["dni"]),
-            photo=doc.get("photo_base64"),
+            image_url=doc.get("image_url") or doc.get("photo_base64"),
             samples=samples,
         )
 
@@ -69,7 +69,7 @@ class MongoDbPersonRepository(PersonRepository):
             "first_name": person.first_name.value,
             "last_name": person.last_name.value,
             "dni": person.dni.value,
-            "photo_base64": person.photo,
+            "image_url": person.image_url,
             "embeddings": embeddings_data,
             "updated_at": now_epoch,
         }
@@ -88,7 +88,7 @@ class MongoDbPersonRepository(PersonRepository):
             first_name=person.first_name,
             last_name=person.last_name,
             dni=person.dni,
-            photo=person.photo,
+            image_url=person.image_url,
             samples=tuple(kept_samples),
         )
 
@@ -144,7 +144,7 @@ class MongoDbPersonRepository(PersonRepository):
                     first_name=PersonName(doc["first_name"]),
                     last_name=PersonName(doc["last_name"]),
                     dni=PeruvianDni(doc["dni"]),
-                    photo=doc.get("photo_base64"),
+                    image_url=doc.get("image_url") or doc.get("photo_base64"),
                     samples=tuple(),
                 )
                 for doc in docs

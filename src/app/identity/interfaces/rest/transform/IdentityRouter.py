@@ -19,7 +19,9 @@ from src.app.identity.interfaces.rest.resources import (
     RegisteredPersonResource,
     RegisteredPersonsPageResponse,
 )
-from src.app.identity.domain.model.queries import GetRegisteredPersonsQuery
+from src.app.identity.domain.model.queries.GetRegisteredPersonsQuery import (
+    GetRegisteredPersonsQuery,
+)
 from src.app.identity.application.internal.queryservices.PersonDirectoryQueryServiceImpl import (
     PersonDirectoryQueryServiceImpl,
 )
@@ -62,7 +64,7 @@ async def get_registered_persons(
                 first_name=person.first_name.value,
                 last_name=person.last_name.value,
                 dni=person.dni.value,
-                photo=person.photo,
+                image_url=person.image_url,
             )
             for person in persons_page.items
         ],
@@ -100,7 +102,12 @@ async def register_person_face(
 
     image_bytes = await file.read()
     person = await command_service.handle_register_face(
-        RegisterPersonFaceCommand(dni=dni, image_bytes=image_bytes)
+        RegisterPersonFaceCommand(
+            dni=dni,
+            image_bytes=image_bytes,
+            image_filename=file.filename,
+            image_content_type=file.content_type,
+        )
     )
 
     await usage_log_repository.log_register(

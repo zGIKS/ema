@@ -34,7 +34,7 @@ class PersonIdentificationQueryServiceImpl(PersonIdentificationQueryService):
                 first_name=None,
                 last_name=None,
                 dni=None,
-                photo=None,
+                image_url=None,
                 confidence=ConfidenceScore(0.0),
                 box=extraction.box,
             )
@@ -56,7 +56,7 @@ class PersonIdentificationQueryServiceImpl(PersonIdentificationQueryService):
             first_name=person.first_name.value if person is not None else None,
             last_name=person.last_name.value if person is not None else None,
             dni=person.dni.value if person is not None else None,
-            photo=person.photo if person is not None else None,
+            image_url=person.image_url if person is not None else None,
             confidence=ConfidenceScore(confidence_value if recognized_person else 0.0),
             box=extraction.box,
         )

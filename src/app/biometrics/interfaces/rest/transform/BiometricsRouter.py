@@ -61,6 +61,6 @@ async def identify_person(
         first_name=identification.first_name,
         last_name=identification.last_name,
         dni=identification.dni,
-        photo=identification.photo,
+        image_url=identification.image_url,
         confidence=identification.confidence.value,
     )

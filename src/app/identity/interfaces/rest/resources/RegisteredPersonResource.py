@@ -22,7 +22,8 @@ class RegisteredPersonResource(BaseModel):
         description="Peruvian DNI with exactly 8 digits",
         examples=["12345678"],
     )
-    photo: str | None = Field(
+    image_url: str | None = Field(
         default=None,
-        description="Base64-encoded representative photo of the person",
+        description="Cloudinary URL of the representative photo of the person",
+        examples=["https://res.cloudinary.com/demo/image/upload/v1719307544/sample.jpg"],
     )

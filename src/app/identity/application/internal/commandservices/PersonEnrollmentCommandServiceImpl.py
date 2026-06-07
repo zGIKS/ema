@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import base64
-
 from src.app.shared.exceptions import ConflictError, NotFoundError, ValidationError
 from src.app.identity.domain.model.commands import (
     AddPersonFaceSamplesCommand,
@@ -12,6 +10,9 @@ from src.app.identity.domain.model.results import DniLookupResult
 from src.app.identity.domain.model.valueobjects import PersonName, PeruvianDni
 from src.app.identity.domain.repositories import PersonRepository
 from src.app.biometrics.domain.services import FaceEmbeddingExtractionQueryService
+from src.app.identity.application.internal.outboundservices.acl.CloudinaryImageUploadService import (
+    CloudinaryImageUploadService,
+)
 from src.app.identity.domain.services import (
     DniLookupQueryService,
     PersonEnrollmentCommandService,
@@ -24,12 +25,14 @@ class PersonEnrollmentCommandServiceImpl(PersonEnrollmentCommandService):
         *,
         person_repository: PersonRepository,
         extraction_query_service: FaceEmbeddingExtractionQueryService,
+        image_upload_service: CloudinaryImageUploadService,
         dni_lookup_query_service: DniLookupQueryService,
         max_embeddings_per_person: int,
         match_threshold: float,
     ) -> None:
         self._person_repository = person_repository
         self._extraction_query_service = extraction_query_service
+        self._image_upload_service = image_upload_service
         self._dni_lookup_query_service = dni_lookup_query_service
         self._max_embeddings_per_person = max(1, int(max_embeddings_per_person))
         self._match_threshold = float(match_threshold)
@@ -50,17 +53,23 @@ class PersonEnrollmentCommandServiceImpl(PersonEnrollmentCommandService):
         )
 
         first_name, last_name = self._identity_to_names(identity)
-        photo = base64.b64encode(command.image_bytes).decode("ascii")
         person = await self._person_repository.find_by_dni(dni)
 
         if person is not None:
             raise ConflictError("DNI already enrolled")
 
+        image_url = await self._image_upload_service.upload_image(
+            image_bytes=command.image_bytes,
+            public_id=f"identity/persons/{dni.value}/profile",
+            filename=command.image_filename,
+            content_type=command.image_content_type,
+        )
+
         aggregate = PersonAggregate.create(
             first_name=first_name,
             last_name=last_name,
             dni=dni,
-            photo=photo,
+            image_url=image_url,
         )
         updated = aggregate.add_sample(
             embedding=extraction.embedding,

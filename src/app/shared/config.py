@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     engine: str
     decolecta_api_key: str
     decolecta_base_url: str
+    cloudinary_api_key: str
+    cloudinary_api_secret: str
+    cloudinary_cloud_name: str
     db_url: str
     db_name: str
 

@@ -9,7 +9,13 @@ from src.app.identity.interfaces.rest.dependencies import init_database
 from src.app.identity.interfaces.rest.transform.IdentityRouter import (
     router as identity_router,
 )
-from src.app.shared.exceptions import ConflictError, DomainError, NotFoundError, ValidationError
+from src.app.shared.exceptions import (
+    ConflictError,
+    DomainError,
+    ExternalServiceError,
+    NotFoundError,
+    ValidationError,
+)
 
 
 def create_app() -> FastAPI:
@@ -40,6 +46,10 @@ def create_app() -> FastAPI:
     @app.exception_handler(DomainError)
     async def _domain_error_handler(_request, exc: DomainError):
         return JSONResponse(status_code=400, content={"detail": "Invalid request"})
+
+    @app.exception_handler(ExternalServiceError)
+    async def _external_service_error_handler(_request, exc: ExternalServiceError):
+        return JSONResponse(status_code=502, content={"detail": str(exc)})
 
     @app.exception_handler(Exception)
     async def _unhandled_error_handler(_request, _exc: Exception):

@@ -9,6 +9,9 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from src.app.identity.application.internal.commandservices.PersonEnrollmentCommandServiceImpl import (
     PersonEnrollmentCommandServiceImpl,
 )
+from src.app.identity.application.internal.outboundservices.acl.CloudinaryImageUploadService import (
+    CloudinaryImageUploadService,
+)
 from src.app.identity.application.internal.outboundservices.acl.DecolectaDniLookupService import (
     DecolectaDniLookupService,
 )
@@ -70,11 +73,24 @@ def get_dni_lookup_query_service() -> DecolectaDniLookupService:
     )
 
 
+@lru_cache(maxsize=1)
+def get_cloudinary_image_upload_service() -> CloudinaryImageUploadService:
+    return CloudinaryImageUploadService(
+        api_key=settings.cloudinary_api_key,
+        api_secret=settings.cloudinary_api_secret,
+        cloud_name=settings.cloudinary_cloud_name,
+    )
+
+
 async def get_person_enrollment_command_service(
     database: Annotated[AsyncIOMotorDatabase, Depends(get_database)],
     extraction_service: Annotated[
         FaceEmbeddingExtractionService,
         Depends(get_face_embedding_extraction_acl_service),
+    ],
+    image_upload_service: Annotated[
+        CloudinaryImageUploadService,
+        Depends(get_cloudinary_image_upload_service),
     ],
     dni_lookup_service: Annotated[
         DecolectaDniLookupService,
@@ -88,6 +104,7 @@ async def get_person_enrollment_command_service(
     return PersonEnrollmentCommandServiceImpl(
         person_repository=repository,
         extraction_query_service=extraction_service,
+        image_upload_service=image_upload_service,
         dni_lookup_query_service=dni_lookup_service,
         max_embeddings_per_person=settings.max_embeddings_per_person,
         match_threshold=settings.match_threshold,

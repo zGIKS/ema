@@ -26,9 +26,10 @@ class IdentificationResponse(BaseModel):
         description="Matched person's Peruvian DNI",
         examples=["12345678"],
     )
-    photo: str | None = Field(
+    image_url: str | None = Field(
         default=None,
-        description="Base64-encoded representative photo of the matched person",
+        description="Cloudinary URL of the matched person's representative photo",
+        examples=["https://res.cloudinary.com/demo/image/upload/v1719307544/sample.jpg"],
     )
     confidence: float = Field(
         ge=0.0,

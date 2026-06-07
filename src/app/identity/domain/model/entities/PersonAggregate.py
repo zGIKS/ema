@@ -10,6 +10,7 @@ from src.app.biometrics.domain.model.valueobjects import FaceEmbedding
 from src.app.identity.domain.model.valueobjects.PersonId import PersonId
 from src.app.identity.domain.model.valueobjects.PersonName import PersonName
 from src.app.identity.domain.model.valueobjects.PeruvianDni import PeruvianDni
+from src.app.shared.exceptions import ValidationError
 
 
 @dataclass(frozen=True, slots=True)
@@ -18,8 +19,12 @@ class PersonAggregate:
     first_name: PersonName
     last_name: PersonName
     dni: PeruvianDni
-    photo: str | None
+    image_url: str | None
     samples: tuple[FaceSample, ...]
+
+    def __post_init__(self) -> None:
+        if self.image_url is not None and not self.image_url.strip():
+            raise ValidationError("image_url cannot be empty")
 
     @staticmethod
     def create(
@@ -27,14 +32,14 @@ class PersonAggregate:
         first_name: PersonName,
         last_name: PersonName,
         dni: PeruvianDni,
-        photo: str | None = None,
+        image_url: str | None = None,
     ) -> "PersonAggregate":
         return PersonAggregate(
             person_id=PersonId(str(uuid4())),
             first_name=first_name,
             last_name=last_name,
             dni=dni,
-            photo=photo,
+            image_url=image_url,
             samples=tuple(),
         )
 
@@ -51,7 +56,7 @@ class PersonAggregate:
             first_name=self.first_name,
             last_name=self.last_name,
             dni=self.dni,
-            photo=self.photo,
+            image_url=self.image_url,
             samples=tuple(appended),
         )
 

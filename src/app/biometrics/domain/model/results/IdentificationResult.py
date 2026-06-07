@@ -12,6 +12,6 @@ class IdentificationResult:
     first_name: str | None
     last_name: str | None
     dni: str | None
-    photo: str | None
+    image_url: str | None
     confidence: ConfidenceScore
     box: BoundingBox | None
