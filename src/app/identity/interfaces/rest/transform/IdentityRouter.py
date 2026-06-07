@@ -94,11 +94,9 @@ async def register_person_face(
         Depends(get_usage_log_repository),
     ],
     dni: str = Form(..., description="Peruvian DNI", examples=["12345678"]),
-    file: UploadFile | None = File(default=None, description="Single image file"),
+    file: UploadFile = File(..., description="Single image file"),
 ) -> RegisterResponse:
     started = perf_counter()
-    if file is None:
-        raise ValidationError("file is required")
 
     image_bytes = await file.read()
     person = await command_service.handle_register_face(
