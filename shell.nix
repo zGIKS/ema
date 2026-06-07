@@ -3,6 +3,7 @@
 pkgs.mkShell {
   packages = [
     pkgs.uv
+    pkgs.curl
     # Needed by manylinux wheels (e.g. numpy) when installed via uv/pip.
     pkgs.stdenv.cc.cc.lib
     pkgs.zlib
@@ -11,6 +12,7 @@ pkgs.mkShell {
       uvicorn
       pydantic
       pydantic-settings
+      python-dotenv
       python-multipart
       sqlalchemy
       aiosqlite
@@ -23,11 +25,12 @@ pkgs.mkShell {
   ];
 
   shellHook = ''
-    export FR_ENGINE=insightface
     export LD_LIBRARY_PATH="${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.zlib}/lib:''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
     cat <<'EOF'
 Face Recognition API
+
+.env is loaded automatically.
 
 Run:
   uvicorn src.main:app --host 0.0.0.0 --port 8080

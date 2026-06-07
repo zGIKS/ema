@@ -14,10 +14,19 @@ nix-shell
 uvicorn src.main:app --host 0.0.0.0 --port 8080
 ```
 
+`.env` is loaded automatically.
+
+Required `.env` keys:
+
+- `FR_ENGINE=insightface`
+- `FR_DECOLECTA_API_KEY=...`
+- `FR_DECOLECTA_BASE_URL=https://api.decolecta.com`
+- `FR_DB_PATH=./data/fr.sqlite3`
+
 ## Notes
 
 - InsightFace is required.
 - Images are not stored.
 - Only embeddings are persisted in SQLite.
-- `POST /register` creates a person once.
+- `POST /register` creates a person once using DNI + one image.
 - `POST /persons/{person_id}/samples` adds more photos.

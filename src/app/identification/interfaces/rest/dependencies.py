@@ -10,6 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.app.identification.application.internal.commandservices.PersonEnrollmentCommandServiceImpl import (
     PersonEnrollmentCommandServiceImpl,
 )
+from src.app.identification.application.internal.outboundservices.acl.DecolectaDniLookupService import (
+    DecolectaDniLookupService,
+)
 from src.app.identification.application.internal.outboundservices.acl.FaceEmbeddingExtractionService import (
     FaceEmbeddingExtractionService,
 )
@@ -69,11 +72,22 @@ def get_face_embedding_extraction_acl_service(
     return FaceEmbeddingExtractionService(engine=extraction_engine)
 
 
+def get_dni_lookup_query_service() -> DecolectaDniLookupService:
+    return DecolectaDniLookupService(
+        api_key=settings.decolecta_api_key,
+        base_url=settings.decolecta_base_url,
+    )
+
+
 async def get_person_enrollment_command_service(
     session: Annotated[AsyncSession, Depends(get_db_session)],
     extraction_service: Annotated[
         FaceEmbeddingExtractionService,
         Depends(get_face_embedding_extraction_acl_service),
+    ],
+    dni_lookup_service: Annotated[
+        DecolectaDniLookupService,
+        Depends(get_dni_lookup_query_service),
     ],
 ) -> PersonEnrollmentCommandServiceImpl:
     repository = SqlAlchemyPersonRepository(
@@ -83,6 +97,7 @@ async def get_person_enrollment_command_service(
     return PersonEnrollmentCommandServiceImpl(
         person_repository=repository,
         extraction_query_service=extraction_service,
+        dni_lookup_query_service=dni_lookup_service,
         max_embeddings_per_person=settings.max_embeddings_per_person,
     )
 

@@ -16,7 +16,7 @@ from src.app.identification.application.internal.queryservices.PersonIdentificat
 )
 from src.app.identification.domain.model.commands import (
     AddPersonFaceSamplesCommand,
-    RegisterFaceCommand,
+    RegisterPersonFaceCommand,
 )
 from src.app.identification.domain.model.queries import (
     GetRegisteredPersonsQuery,
@@ -142,13 +142,13 @@ async def get_registered_persons(
     response_model=RegisterResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Register a person",
-    description="Creates a new person using first name, last name, DNI and a single face image. DNI must be unique.",
+    description="Creates a new person using DNI and a single face image. DNI must exist in DECOLECTA RENIEC.",
     responses={
-        201: {"description": "Face samples enrolled"},
+        201: {"description": "Person registered successfully"},
         409: {"model": ErrorResponse, "description": "DNI already exists"},
         422: {
             "model": ErrorResponse,
-            "description": "Invalid input payload",
+            "description": "Invalid input payload or DNI is not eligible for registration",
         },
     },
 )
@@ -161,16 +161,6 @@ async def register_person_face(
         SqlAlchemyUsageLogRepository,
         Depends(get_usage_log_repository),
     ],
-    first_name: str = Form(
-        ...,
-        description="Person first name. Allows Spanish letters, spaces, enie and accents only.",
-        examples=["Jose Luis"],
-    ),
-    last_name: str = Form(
-        ...,
-        description="Person last name. Allows Spanish letters, spaces, enie and accents only.",
-        examples=["Quispe Nunez"],
-    ),
     dni: str = Form(
         ...,
         description="Peruvian DNI. Must contain exactly 8 digits.",
@@ -187,23 +177,18 @@ async def register_person_face(
         raise ValidationError("file is required")
 
     image_bytes = await file.read()
-    command = RegisterFaceCommand(
-        first_name=first_name,
-        last_name=last_name,
-        dni=dni,
-        image_bytes=image_bytes,
-    )
-    event = await command_service.handle_register_face(command)
+    command = RegisterPersonFaceCommand(dni=dni, image_bytes=image_bytes)
+    person = await command_service.handle_register_face(command)
 
     await usage_log_repository.log_register(
-        person_id=event.person_id,
+        person_id=person.person_id.value,
         duration_ms=int((perf_counter() - started) * 1000),
     )
 
     return RegisterResponse(
-        first_name=" ".join(first_name.strip().split()),
-        last_name=" ".join(last_name.strip().split()),
-        dni=dni.strip(),
+        first_name=person.first_name.value,
+        last_name=person.last_name.value,
+        dni=person.dni.value,
         enrolled=True,
     )
 

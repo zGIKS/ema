@@ -19,7 +19,7 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(ValidationError)
     async def _validation_error_handler(_request, exc: ValidationError):
-        return JSONResponse(status_code=422, content={"detail": str(exc)})
+        return JSONResponse(status_code=422, content={"detail": "Invalid request payload"})
 
     @app.exception_handler(RequestValidationError)
     async def _request_validation_error_handler(_request, _exc: RequestValidationError):
@@ -27,11 +27,11 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(NotFoundError)
     async def _not_found_error_handler(_request, exc: NotFoundError):
-        return JSONResponse(status_code=404, content={"detail": str(exc)})
+        return JSONResponse(status_code=404, content={"detail": "Resource not found"})
 
     @app.exception_handler(ConflictError)
     async def _conflict_error_handler(_request, exc: ConflictError):
-        return JSONResponse(status_code=409, content={"detail": str(exc)})
+        return JSONResponse(status_code=409, content={"detail": "Conflict"})
 
     @app.exception_handler(DomainError)
     async def _domain_error_handler(_request, exc: DomainError):

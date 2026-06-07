@@ -7,6 +7,9 @@ from src.app.identification.domain.model.results.IdentificationMatchResult impor
 from src.app.identification.domain.model.results.IdentificationResult import (
     IdentificationResult,
 )
+from src.app.identification.domain.model.results.DniLookupResult import (
+    DniLookupResult,
+)
 from src.app.identification.domain.model.results.RegisteredPersonsPageResult import (
     RegisteredPersonsPageResult,
 )
@@ -15,5 +18,6 @@ __all__ = [
     "FaceExtractionResult",
     "IdentificationMatchResult",
     "IdentificationResult",
+    "DniLookupResult",
     "RegisteredPersonsPageResult",
 ]

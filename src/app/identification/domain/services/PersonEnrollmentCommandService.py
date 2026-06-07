@@ -4,17 +4,16 @@ from typing import Protocol
 
 from src.app.identification.domain.model.commands import (
     AddPersonFaceSamplesCommand,
-    RegisterFaceCommand,
+    RegisterPersonFaceCommand,
 )
-from src.app.identification.domain.model.events import FaceRegisteredEvent
 from src.app.identification.domain.model.entities import PersonAggregate
 
 
 class PersonEnrollmentCommandService(Protocol):
     async def handle_register_face(
         self,
-        command: RegisterFaceCommand,
-    ) -> FaceRegisteredEvent:
+        command: RegisterPersonFaceCommand,
+    ) -> PersonAggregate:
         ...
 
     async def handle_add_face_samples(
