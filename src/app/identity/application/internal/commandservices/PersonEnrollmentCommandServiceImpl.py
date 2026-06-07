@@ -11,9 +11,9 @@ from src.app.identity.domain.model.entities import PersonAggregate
 from src.app.identity.domain.model.results import DniLookupResult
 from src.app.identity.domain.model.valueobjects import PersonName, PeruvianDni
 from src.app.identity.domain.repositories import PersonRepository
+from src.app.biometrics.domain.services import FaceEmbeddingExtractionQueryService
 from src.app.identity.domain.services import (
     DniLookupQueryService,
-    FaceEmbeddingExtractionQueryService,
     PersonEnrollmentCommandService,
 )
 

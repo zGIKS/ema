@@ -7,6 +7,7 @@ from src.app.identity.domain.model.commands import (
     RegisterPersonFaceCommand,
 )
 from src.app.identity.domain.model.entities import PersonAggregate
+from src.app.biometrics.domain.services import FaceEmbeddingExtractionQueryService
 
 
 class PersonEnrollmentCommandService(Protocol):
