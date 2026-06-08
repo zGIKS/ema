@@ -34,6 +34,7 @@ from src.app.identity.infrastructure.persistence.mongodb.repositories.MongoDbPer
 from src.app.identity.infrastructure.persistence.mongodb.repositories.MongoDbUsageLogRepository import (
     MongoDbUsageLogRepository,
 )
+from mongo.migrations.runner import run_migrations
 from src.app.shared.config import settings
 
 
@@ -143,3 +144,4 @@ async def get_usage_log_query_service(
 
 async def init_database() -> None:
     await _client_factory().init_database()
+    await run_migrations()

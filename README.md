@@ -39,3 +39,11 @@ Required `.env` keys:
 - `GET /api/v1/identity/persons` is admin-only.
 - `POST /api/v1/identity/persons/{person_id}/samples` adds more photos (admin only).
 - `GET /api/v1/auditory/usage-logs` returns all logs for admins and only own logs for users.
+
+## Mongo migrations
+
+Run:
+
+```bash
+python mongo/migrations/runner.py
+```

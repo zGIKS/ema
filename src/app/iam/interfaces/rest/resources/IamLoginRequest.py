@@ -6,5 +6,5 @@ from pydantic import BaseModel, ConfigDict, Field
 class IamLoginRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    username: str = Field(min_length=1, description="Account username", examples=["admin"])
+    username: str = Field(pattern=r"^U\d{9}$", description="Account username", examples=["U123456789"])
     password: str = Field(min_length=1, description="Account password", examples=["secret123"])

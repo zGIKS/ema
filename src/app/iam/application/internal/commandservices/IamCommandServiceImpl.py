@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
+from secrets import randbelow
 
 import jwt
 
@@ -75,11 +75,21 @@ class IamCommandServiceImpl(IamCommandService):
         if existing is not None:
             raise ConflictError("Username already exists")
 
+        user_id = await self._generate_unique_user_id()
+
         user = IamUser(
-            user_id=UserId(str(uuid4())),
+            user_id=UserId(user_id),
             username=command.username,
             password_hash=_hash_password(command.password),
             role=command.role,
             is_active=True,
         )
         return await self._user_repository.save(user)
+
+    async def _generate_unique_user_id(self) -> str:
+        for _ in range(100):
+            candidate = f"U{randbelow(1_000_000_000):09d}"
+            if await self._user_repository.find_by_id(UserId(candidate)) is None:
+                return candidate
+
+        raise ConflictError("Unable to generate a unique user_id")
