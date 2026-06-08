@@ -45,7 +45,6 @@ async def login(
         access_token=token,
         user_id=user.user_id.value,
         username=user.username,
-        role=user.role.value,
     )
 
 
