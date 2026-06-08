@@ -9,6 +9,8 @@ from src.app.shared.exceptions import ValidationError
 class GetRegisteredPersonsQuery:
     page: int = 1
     page_size: int = 20
+    search_term: str | None = None
+    dni: str | None = None
 
     def __post_init__(self) -> None:
         if self.page <= 0:

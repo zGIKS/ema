@@ -53,8 +53,15 @@ async def get_registered_persons(
     ],
     page: int = 1,
     page_size: int = 20,
+    search: str | None = None,
+    dni: str | None = None,
 ) -> RegisteredPersonsPageResponse:
-    query = GetRegisteredPersonsQuery(page=page, page_size=page_size)
+    query = GetRegisteredPersonsQuery(
+        page=page,
+        page_size=page_size,
+        search_term=search,
+        dni=dni,
+    )
     persons_page = await query_service.handle_get_registered_persons(query)
 
     return RegisteredPersonsPageResponse(

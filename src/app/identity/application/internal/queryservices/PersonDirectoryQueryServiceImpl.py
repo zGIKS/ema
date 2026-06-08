@@ -17,6 +17,8 @@ class PersonDirectoryQueryServiceImpl(PersonDirectoryQueryService):
         persons, total = await self._person_repository.find_paginated(
             page=query.page,
             page_size=query.page_size,
+            search_term=query.search_term,
+            dni=query.dni,
         )
         return RegisteredPersonsPageResult(
             items=persons,

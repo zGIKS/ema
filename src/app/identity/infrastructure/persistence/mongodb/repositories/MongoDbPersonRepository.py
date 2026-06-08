@@ -130,11 +130,29 @@ class MongoDbPersonRepository(PersonRepository):
         *,
         page: int,
         page_size: int,
+        search_term: str | None = None,
+        dni: str | None = None,
     ) -> tuple[tuple[PersonAggregate, ...], int]:
         offset = (page - 1) * page_size
-        total = await self._collection.count_documents({})
+        
+        query_filter: dict = {}
+        if dni:
+            query_filter["dni"] = dni
+        elif search_term:
+            query_filter["$or"] = [
+                {"first_name": {"$regex": search_term, "$options": "i"}},
+                {"last_name": {"$regex": search_term, "$options": "i"}},
+                {"dni": {"$regex": search_term, "$options": "i"}}
+            ]
+            
+        total = await self._collection.count_documents(query_filter)
 
-        cursor = self._collection.find().sort([("created_at", -1), ("person_id", 1)]).skip(offset).limit(page_size)
+        cursor = (
+            self._collection.find(query_filter)
+            .sort([("created_at", -1), ("person_id", 1)])
+            .skip(offset)
+            .limit(page_size)
+        )
         docs = await cursor.to_list(length=page_size)
         
         return (

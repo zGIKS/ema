@@ -29,5 +29,7 @@ class PersonRepository(Protocol):
         *,
         page: int,
         page_size: int,
+        search_term: str | None = None,
+        dni: str | None = None,
     ) -> tuple[tuple[PersonAggregate, ...], int]:
         ...
