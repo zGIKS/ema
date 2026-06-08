@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True, slots=True)
 class LogIdentifyCommand:
+    user_id: str
     person_id: str | None
     first_name: str | None
     last_name: str | None

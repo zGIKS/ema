@@ -12,6 +12,8 @@ from src.app.auditory.interfaces.rest.resources.UsageLogsPageResponse import (
     UsageLogsPageResponse,
 )
 from src.app.auditory.interfaces.rest.dependencies import get_usage_log_query_service
+from src.app.iam.domain.model.entities import CurrentUser
+from src.app.iam.interfaces.rest.dependencies import get_current_user
 
 
 router = APIRouter(prefix="/api/v1/auditory", tags=["Auditory"])
@@ -29,16 +31,23 @@ async def get_usage_logs(
         UsageLogQueryServiceImpl,
         Depends(get_usage_log_query_service),
     ],
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
     page: int = 1,
     page_size: int = 20,
 ) -> UsageLogsPageResponse:
-    query = GetUsageLogsQuery(page=page, page_size=page_size)
+    query = GetUsageLogsQuery(
+        requester_user_id=current_user.user_id.value,
+        requester_role=current_user.role.value,
+        page=page,
+        page_size=page_size,
+    )
     logs_page = await query_service.handle_get_usage_logs(query)
 
     return UsageLogsPageResponse(
         items=[
             UsageLogResource(
                 operation=log.operation,
+                user_id=log.user_id,
                 person_id=log.person_id,
                 first_name=log.first_name,
                 last_name=log.last_name,

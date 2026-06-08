@@ -16,6 +16,7 @@ class AuditoryContextFacadeImpl(AuditoryContextFacade):
     async def log_identify(
         self,
         *,
+        user_id: str,
         person_id: str | None,
         first_name: str | None = None,
         last_name: str | None = None,
@@ -25,6 +26,7 @@ class AuditoryContextFacadeImpl(AuditoryContextFacade):
         image_url: str | None = None,
     ) -> None:
         command = LogIdentifyCommand(
+            user_id=user_id,
             person_id=person_id,
             first_name=first_name,
             last_name=last_name,
@@ -38,6 +40,7 @@ class AuditoryContextFacadeImpl(AuditoryContextFacade):
     async def log_register(
         self,
         *,
+        user_id: str,
         person_id: str,
         first_name: str,
         last_name: str,
@@ -46,6 +49,7 @@ class AuditoryContextFacadeImpl(AuditoryContextFacade):
         image_url: str | None = None,
     ) -> None:
         command = LogRegisterCommand(
+            user_id=user_id,
             person_id=person_id,
             first_name=first_name,
             last_name=last_name,
@@ -58,6 +62,7 @@ class AuditoryContextFacadeImpl(AuditoryContextFacade):
     async def log_add_person_face_samples(
         self,
         *,
+        user_id: str,
         person_id: str,
         first_name: str,
         last_name: str,
@@ -67,6 +72,7 @@ class AuditoryContextFacadeImpl(AuditoryContextFacade):
         duration_ms: int,
     ) -> None:
         command = LogAddPersonFaceSamplesCommand(
+            user_id=user_id,
             person_id=person_id,
             first_name=first_name,
             last_name=last_name,

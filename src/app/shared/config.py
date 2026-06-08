@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     cloudinary_cloud_name: str
     db_url: str
     db_name: str
+    jwt_secret: str
 
     insightface_model: str = "buffalo_l"
     insightface_det_size: tuple[int, int] = (640, 640)

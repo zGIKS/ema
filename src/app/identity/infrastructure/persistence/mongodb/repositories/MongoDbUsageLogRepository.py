@@ -13,6 +13,7 @@ class MongoDbUsageLogRepository(UsageLogRepository):
     async def log_identify(
         self,
         *,
+        user_id: str,
         person_id: str | None,
         confidence: float | None,
         duration_ms: int,
@@ -20,6 +21,7 @@ class MongoDbUsageLogRepository(UsageLogRepository):
     ) -> None:
         await self._collection.insert_one(
             {
+                "user_id": user_id,
                 "operation": "identify",
                 "person_id": person_id,
                 "confidence": float(confidence) if confidence is not None else None,
@@ -32,12 +34,14 @@ class MongoDbUsageLogRepository(UsageLogRepository):
     async def log_register(
         self,
         *,
+        user_id: str,
         person_id: str,
         duration_ms: int,
         image_url: str | None = None,
     ) -> None:
         await self._collection.insert_one(
             {
+                "user_id": user_id,
                 "operation": "register",
                 "person_id": person_id,
                 "confidence": None,
@@ -52,16 +56,19 @@ class MongoDbUsageLogRepository(UsageLogRepository):
         *,
         page: int,
         page_size: int,
+        user_id: str | None = None,
     ) -> tuple[tuple[UsageLog, ...], int]:
         offset = (page - 1) * page_size
-        total = await self._collection.count_documents({})
+        query_filter = {"user_id": user_id} if user_id is not None else {}
+        total = await self._collection.count_documents(query_filter)
 
-        cursor = self._collection.find().sort([("used_at", -1)]).skip(offset).limit(page_size)
+        cursor = self._collection.find(query_filter).sort([("used_at", -1)]).skip(offset).limit(page_size)
         docs = await cursor.to_list(length=page_size)
         
         return (
             tuple(
                 UsageLog(
+                    user_id=doc.get("user_id"),
                     operation=doc["operation"],
                     person_id=doc.get("person_id"),
                     confidence=doc.get("confidence"),

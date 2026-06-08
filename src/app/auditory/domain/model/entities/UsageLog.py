@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True, slots=True)
 class UsageLog:
+    user_id: str | None
     operation: str
     person_id: str | None
     first_name: str | None

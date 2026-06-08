@@ -1,0 +1,72 @@
+from __future__ import annotations
+
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, status
+
+from src.app.iam.application.internal.commandservices.IamCommandServiceImpl import (
+    IamCommandServiceImpl,
+)
+from src.app.iam.domain.model.commands import AuthenticateUserCommand, CreateUserCommand
+from src.app.iam.domain.model.entities import CurrentUser
+from src.app.iam.infrastructure.persistence.mongodb.repositories import MongoDbIamUserRepository
+from src.app.iam.interfaces.rest.dependencies import require_admin_user
+from src.app.iam.interfaces.rest.resources import (
+    AuthenticatedUserResource,
+    IamLoginRequest,
+    IamLoginResponse,
+    IamUserRequest,
+)
+from src.app.identity.interfaces.rest.dependencies import get_database
+from src.app.shared.exceptions import AuthenticationError
+
+router = APIRouter(prefix="/api/v1/iam", tags=["IAM"])
+
+
+@router.post(
+    "/login",
+    response_model=IamLoginResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Login with username and password",
+)
+async def login(
+    request: IamLoginRequest,
+    database=Depends(get_database),
+) -> IamLoginResponse:
+    repository = MongoDbIamUserRepository(database)
+    service = IamCommandServiceImpl(user_repository=repository)
+    token = await service.handle_authenticate_user(
+        AuthenticateUserCommand(username=request.username, password=request.password)
+    )
+    user = await repository.find_by_username(request.username)
+    if user is None:
+        raise AuthenticationError("Invalid credentials")
+    return IamLoginResponse(
+        access_token=token,
+        user_id=user.user_id.value,
+        username=user.username,
+        role=user.role.value,
+    )
+
+
+@router.post(
+    "/users",
+    response_model=AuthenticatedUserResource,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a user",
+)
+async def create_user(
+    request: IamUserRequest,
+    _current_user: Annotated[CurrentUser, Depends(require_admin_user)],
+    database=Depends(get_database),
+) -> AuthenticatedUserResource:
+    repository = MongoDbIamUserRepository(database)
+    service = IamCommandServiceImpl(user_repository=repository)
+    user = await service.handle_create_user(
+        CreateUserCommand(
+            username=request.username,
+            password=request.password,
+            role=request.role,
+        )
+    )
+    return AuthenticatedUserResource(user_id=user.user_id.value, username=user.username, role=user.role.value)

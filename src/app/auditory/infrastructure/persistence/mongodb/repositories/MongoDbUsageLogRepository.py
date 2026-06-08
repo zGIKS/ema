@@ -14,6 +14,7 @@ class MongoDbUsageLogRepository(UsageLogRepository):
     async def log_identify(
         self,
         *,
+        user_id: str,
         person_id: str | None,
         first_name: str | None = None,
         last_name: str | None = None,
@@ -24,6 +25,7 @@ class MongoDbUsageLogRepository(UsageLogRepository):
     ) -> None:
         await self._collection.insert_one(
             {
+                "user_id": user_id,
                 "operation": "identify",
                 "person_id": person_id,
                 "first_name": first_name,
@@ -39,6 +41,7 @@ class MongoDbUsageLogRepository(UsageLogRepository):
     async def log_register(
         self,
         *,
+        user_id: str,
         person_id: str,
         first_name: str,
         last_name: str,
@@ -48,6 +51,7 @@ class MongoDbUsageLogRepository(UsageLogRepository):
     ) -> None:
         await self._collection.insert_one(
             {
+                "user_id": user_id,
                 "operation": "register",
                 "person_id": person_id,
                 "first_name": first_name,
@@ -63,6 +67,7 @@ class MongoDbUsageLogRepository(UsageLogRepository):
     async def log_add_person_face_samples(
         self,
         *,
+        user_id: str,
         person_id: str,
         first_name: str,
         last_name: str,
@@ -73,6 +78,7 @@ class MongoDbUsageLogRepository(UsageLogRepository):
     ) -> None:
         await self._collection.insert_one(
             {
+                "user_id": user_id,
                 "operation": "add_face_samples",
                 "person_id": person_id,
                 "first_name": first_name,
@@ -91,12 +97,14 @@ class MongoDbUsageLogRepository(UsageLogRepository):
         *,
         page: int,
         page_size: int,
+        user_id: str | None = None,
     ) -> tuple[tuple[UsageLog, ...], int]:
         offset = (page - 1) * page_size
-        total = await self._collection.count_documents({})
+        query_filter = {"user_id": user_id} if user_id is not None else {}
+        total = await self._collection.count_documents(query_filter)
 
         cursor = (
-            self._collection.find({})
+            self._collection.find(query_filter)
             .sort("used_at", -1)
             .skip(offset)
             .limit(page_size)
@@ -106,6 +114,7 @@ class MongoDbUsageLogRepository(UsageLogRepository):
         return (
             tuple(
                 UsageLog(
+                    user_id=doc.get("user_id"),
                     operation=doc["operation"],
                     person_id=doc.get("person_id"),
                     first_name=doc.get("first_name"),

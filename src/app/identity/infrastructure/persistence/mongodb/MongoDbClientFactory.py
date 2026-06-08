@@ -14,5 +14,8 @@ class MongoDbClientFactory:
         db = self.database()
         await db.persons.create_index("person_id", unique=True)
         await db.persons.create_index("dni", unique=True)
+        await db.iam_users.create_index("user_id", unique=True)
+        await db.iam_users.create_index("username", unique=True)
+        await db.usage_logs.create_index("user_id")
         await db.usage_logs.create_index("used_at")
         await db.usage_logs.create_index("operation")

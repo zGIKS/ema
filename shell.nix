@@ -14,6 +14,7 @@ pkgs.mkShell {
       pydantic-settings
       python-dotenv
       python-multipart
+      pyjwt
       motor
       numpy
       httpx

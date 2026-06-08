@@ -7,6 +7,7 @@ class AuditoryContextFacade(Protocol):
     async def log_identify(
         self,
         *,
+        user_id: str,
         person_id: str | None,
         first_name: str | None = None,
         last_name: str | None = None,
@@ -20,6 +21,7 @@ class AuditoryContextFacade(Protocol):
     async def log_register(
         self,
         *,
+        user_id: str,
         person_id: str,
         first_name: str,
         last_name: str,
@@ -32,6 +34,7 @@ class AuditoryContextFacade(Protocol):
     async def log_add_person_face_samples(
         self,
         *,
+        user_id: str,
         person_id: str,
         first_name: str,
         last_name: str,

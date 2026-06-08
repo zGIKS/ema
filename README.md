@@ -27,11 +27,15 @@ Required `.env` keys:
 - `FR_CLOUDINARY_CLOUD_NAME=...`
 - `FR_DB_URL=mongodb://admin:admin@localhost:27017`
 - `FR_DB_NAME=ema`
+- `FR_JWT_SECRET=...`
 ## Notes
 
 - InsightFace is required.
 - Images are stored in Cloudinary and only embeddings are persisted in MongoDB.
 - `POST /api/v1/identity/register` creates a person once using DNI + one image.
+- `POST /api/v1/iam/login` returns a bearer token using username/password.
+- `POST /api/v1/iam/users` creates users (admin only).
 - `GET /api/v1/biometrics/identify` is the biometric read path.
-- `GET /api/v1/identity/persons` is the identity read path.
-- `POST /api/v1/identity/persons/{person_id}/samples` adds more photos.
+- `GET /api/v1/identity/persons` is admin-only.
+- `POST /api/v1/identity/persons/{person_id}/samples` adds more photos (admin only).
+- `GET /api/v1/auditory/usage-logs` returns all logs for admins and only own logs for users.

@@ -10,6 +10,11 @@ class UsageLogResource(BaseModel):
         description="The type of operation (e.g., identify, register)",
         examples=["identify"],
     )
+    user_id: str | None = Field(
+        default=None,
+        description="User ID who performed the operation",
+        examples=["user-123"],
+    )
     person_id: str | None = Field(
         default=None,
         description="Matched or registered person UUID",

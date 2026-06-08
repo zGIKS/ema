@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True, slots=True)
 class LogAddPersonFaceSamplesCommand:
+    user_id: str
     person_id: str
     first_name: str
     last_name: str

@@ -12,7 +12,12 @@ from src.app.identity.interfaces.rest.transform.IdentityRouter import (
 from src.app.auditory.interfaces.rest.transform.AuditoryRouter import (
     router as auditory_router,
 )
+from src.app.iam.interfaces.rest.transform.IamRouter import (
+    router as iam_router,
+)
 from src.app.shared.exceptions import (
+    AuthenticationError,
+    AuthorizationError,
     ConflictError,
     DomainError,
     ExternalServiceError,
@@ -26,6 +31,7 @@ def create_app() -> FastAPI:
     app.include_router(identity_router)
     app.include_router(biometrics_router)
     app.include_router(auditory_router)
+    app.include_router(iam_router)
 
     @app.on_event("startup")
     async def _init_database() -> None:
@@ -54,6 +60,14 @@ def create_app() -> FastAPI:
     @app.exception_handler(ExternalServiceError)
     async def _external_service_error_handler(_request, exc: ExternalServiceError):
         return JSONResponse(status_code=502, content={"detail": str(exc)})
+
+    @app.exception_handler(AuthenticationError)
+    async def _authentication_error_handler(_request, exc: AuthenticationError):
+        return JSONResponse(status_code=401, content={"detail": str(exc)})
+
+    @app.exception_handler(AuthorizationError)
+    async def _authorization_error_handler(_request, exc: AuthorizationError):
+        return JSONResponse(status_code=403, content={"detail": str(exc)})
 
     @app.exception_handler(Exception)
     async def _unhandled_error_handler(_request, _exc: Exception):
