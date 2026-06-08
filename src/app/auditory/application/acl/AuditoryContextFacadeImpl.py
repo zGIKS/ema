@@ -1,0 +1,31 @@
+from __future__ import annotations
+
+from src.app.auditory.domain.model.commands.LogIdentifyCommand import LogIdentifyCommand
+from src.app.auditory.domain.model.commands.LogRegisterCommand import LogRegisterCommand
+from src.app.auditory.domain.services.UsageLogCommandService import UsageLogCommandService
+from src.app.auditory.interfaces.acl.AuditoryContextFacade import AuditoryContextFacade
+
+
+class AuditoryContextFacadeImpl(AuditoryContextFacade):
+    def __init__(self, *, command_service: UsageLogCommandService) -> None:
+        self._command_service = command_service
+
+    async def log_identify(
+        self,
+        *,
+        person_id: str | None,
+        confidence: float | None,
+        duration_ms: int,
+        image_url: str | None = None,
+    ) -> None:
+        command = LogIdentifyCommand(
+            person_id=person_id,
+            confidence=confidence,
+            duration_ms=duration_ms,
+            image_url=image_url,
+        )
+        await self._command_service.handle_log_identify(command)
+
+    async def log_register(self, *, person_id: str, duration_ms: int) -> None:
+        command = LogRegisterCommand(person_id=person_id, duration_ms=duration_ms)
+        await self._command_service.handle_log_register(command)

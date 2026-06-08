@@ -11,14 +11,10 @@ from src.app.biometrics.application.internal.queryservices.PersonIdentificationQ
     PersonIdentificationQueryServiceImpl,
 )
 from src.app.biometrics.domain.model.queries import IdentifyPersonQuery
-from src.app.identity.infrastructure.persistence.mongodb.repositories.MongoDbUsageLogRepository import (
-    MongoDbUsageLogRepository,
-)
+from src.app.auditory.interfaces.acl.AuditoryContextFacade import AuditoryContextFacade
+from src.app.auditory.interfaces.rest.dependencies import get_auditory_context_facade
 from src.app.biometrics.interfaces.rest.resources import IdentificationResponse
-from src.app.biometrics.interfaces.rest.dependencies import (
-    get_person_identification_query_service,
-    get_usage_log_repository,
-)
+from src.app.biometrics.interfaces.rest.dependencies import get_person_identification_query_service
 from src.app.identity.application.internal.outboundservices.acl.CloudinaryImageUploadService import (
     CloudinaryImageUploadService,
 )
@@ -47,9 +43,9 @@ async def identify_person(
         PersonIdentificationQueryServiceImpl,
         Depends(get_person_identification_query_service),
     ],
-    usage_log_repository: Annotated[
-        MongoDbUsageLogRepository,
-        Depends(get_usage_log_repository),
+    auditory_facade: Annotated[
+        AuditoryContextFacade,
+        Depends(get_auditory_context_facade),
     ],
     image_upload_service: Annotated[
         CloudinaryImageUploadService,
@@ -76,7 +72,7 @@ async def identify_person(
     query = IdentifyPersonQuery(image_bytes=image_bytes)
     identification = await query_service.handle_identify_person(query)
 
-    await usage_log_repository.log_identify(
+    await auditory_facade.log_identify(
         person_id=identification.person_id.value if identification.person_id else None,
         confidence=identification.confidence.value if identification.confidence else None,
         duration_ms=int((perf_counter() - started) * 1000),

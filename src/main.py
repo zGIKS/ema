@@ -9,6 +9,9 @@ from src.app.identity.interfaces.rest.dependencies import init_database
 from src.app.identity.interfaces.rest.transform.IdentityRouter import (
     router as identity_router,
 )
+from src.app.auditory.interfaces.rest.transform.AuditoryRouter import (
+    router as auditory_router,
+)
 from src.app.shared.exceptions import (
     ConflictError,
     DomainError,
@@ -22,6 +25,7 @@ def create_app() -> FastAPI:
     app = FastAPI(title="Face Recognition API", version="0.1.0")
     app.include_router(identity_router)
     app.include_router(biometrics_router)
+    app.include_router(auditory_router)
 
     @app.on_event("startup")
     async def _init_database() -> None:
