@@ -47,8 +47,9 @@ class PersonAggregate:
         self,
         embedding: FaceEmbedding,
         max_samples: int,
+        image_url: str | None = None,
     ) -> "PersonAggregate":
-        appended = (*self.samples, FaceSample(embedding=embedding))
+        appended = (*self.samples, FaceSample(embedding=embedding, image_url=image_url))
         if max_samples > 0 and len(appended) > max_samples:
             appended = appended[-max_samples:]
         return PersonAggregate(
@@ -59,6 +60,14 @@ class PersonAggregate:
             image_url=self.image_url,
             samples=tuple(appended),
         )
+
+    @property
+    def total_samples(self) -> int:
+        return len(self.samples)
+
+    @property
+    def sample_image_urls(self) -> tuple[str | None, ...]:
+        return tuple(sample.image_url for sample in self.samples)
 
     def matches_embedding(self, embedding: FaceEmbedding, threshold: float) -> bool:
         if not self.samples:

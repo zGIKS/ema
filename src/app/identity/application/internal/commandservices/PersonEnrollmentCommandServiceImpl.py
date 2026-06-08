@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import uuid4
+
 from src.app.shared.exceptions import ConflictError, NotFoundError, ValidationError
 from src.app.identity.domain.model.commands import (
     AddPersonFaceSamplesCommand,
@@ -73,6 +75,7 @@ class PersonEnrollmentCommandServiceImpl(PersonEnrollmentCommandService):
         )
         updated = aggregate.add_sample(
             embedding=extraction.embedding,
+            image_url=image_url,
             max_samples=self._max_embeddings_per_person,
         )
         return await self._person_repository.save(updated)
@@ -86,7 +89,7 @@ class PersonEnrollmentCommandServiceImpl(PersonEnrollmentCommandService):
             raise NotFoundError("Person not found")
 
         updated = person
-        for image_bytes in command.image_bytes_list:
+        for index, image_bytes in enumerate(command.image_bytes_list, start=1):
             extraction = await self._extraction_query_service.handle_extract_embedding(
                 image_bytes
             )
@@ -95,8 +98,16 @@ class PersonEnrollmentCommandServiceImpl(PersonEnrollmentCommandService):
                 threshold=self._match_threshold,
             ):
                 raise ConflictError("Face does not match the enrolled person")
+
+            image_url = await self._image_upload_service.upload_image(
+                image_bytes=image_bytes,
+                public_id=f"identity/persons/{person.person_id.value}/samples/{uuid4()}-{index}",
+                filename=f"sample-{index}.jpg",
+                content_type="application/octet-stream",
+            )
             updated = updated.add_sample(
                 embedding=extraction.embedding,
+                image_url=image_url,
                 max_samples=self._max_embeddings_per_person,
             )
 

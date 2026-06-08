@@ -16,3 +16,8 @@ class AddFaceSamplesResponse(BaseModel):
         description="Total enrolled face samples after the upload",
         examples=[3],
     )
+    sample_image_urls: list[str] = Field(
+        default_factory=list,
+        description="Cloudinary URLs of the newly uploaded face samples",
+        examples=[["https://res.cloudinary.com/demo/image/upload/v1719307544/sample.jpg"]],
+    )

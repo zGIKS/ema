@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from src.app.auditory.domain.model.commands.LogAddPersonFaceSamplesCommand import (
+    LogAddPersonFaceSamplesCommand,
+)
 from src.app.auditory.domain.model.commands.LogIdentifyCommand import LogIdentifyCommand
 from src.app.auditory.domain.model.commands.LogRegisterCommand import LogRegisterCommand
 from src.app.auditory.domain.services.UsageLogCommandService import UsageLogCommandService
@@ -49,3 +52,25 @@ class AuditoryContextFacadeImpl(AuditoryContextFacade):
             duration_ms=duration_ms,
         )
         await self._command_service.handle_log_register(command)
+
+    async def log_add_person_face_samples(
+        self,
+        *,
+        person_id: str,
+        first_name: str,
+        last_name: str,
+        dni: str,
+        samples_added: int,
+        total_samples: int,
+        duration_ms: int,
+    ) -> None:
+        command = LogAddPersonFaceSamplesCommand(
+            person_id=person_id,
+            first_name=first_name,
+            last_name=last_name,
+            dni=dni,
+            samples_added=samples_added,
+            total_samples=total_samples,
+            duration_ms=duration_ms,
+        )
+        await self._command_service.handle_log_add_person_face_samples(command)

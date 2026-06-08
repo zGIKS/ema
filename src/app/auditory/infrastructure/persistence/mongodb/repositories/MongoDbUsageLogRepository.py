@@ -58,6 +58,32 @@ class MongoDbUsageLogRepository(UsageLogRepository):
             }
         )
 
+    async def log_add_person_face_samples(
+        self,
+        *,
+        person_id: str,
+        first_name: str,
+        last_name: str,
+        dni: str,
+        samples_added: int,
+        total_samples: int,
+        duration_ms: int,
+    ) -> None:
+        await self._collection.insert_one(
+            {
+                "operation": "add_face_samples",
+                "person_id": person_id,
+                "first_name": first_name,
+                "last_name": last_name,
+                "dni": dni,
+                "confidence": None,
+                "samples_added": int(samples_added),
+                "total_samples": int(total_samples),
+                "duration_ms": int(duration_ms),
+                "used_at": int(datetime.now(UTC).timestamp()),
+            }
+        )
+
     async def find_paginated(
         self,
         *,
@@ -84,6 +110,8 @@ class MongoDbUsageLogRepository(UsageLogRepository):
                     last_name=doc.get("last_name"),
                     dni=doc.get("dni"),
                     confidence=doc.get("confidence"),
+                    samples_added=doc.get("samples_added"),
+                    total_samples=doc.get("total_samples"),
                     duration_ms=doc["duration_ms"],
                     image_url=doc.get("image_url"),
                     used_at=doc["used_at"],

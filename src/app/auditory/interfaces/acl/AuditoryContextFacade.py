@@ -27,3 +27,16 @@ class AuditoryContextFacade(Protocol):
         duration_ms: int,
     ) -> None:
         ...
+
+    async def log_add_person_face_samples(
+        self,
+        *,
+        person_id: str,
+        first_name: str,
+        last_name: str,
+        dni: str,
+        samples_added: int,
+        total_samples: int,
+        duration_ms: int,
+    ) -> None:
+        ...

@@ -20,6 +20,16 @@ class UsageLogResource(BaseModel):
         description="Confidence score of the identification",
         examples=[0.91],
     )
+    samples_added: int | None = Field(
+        default=None,
+        description="Number of face samples added in the operation",
+        examples=[2],
+    )
+    total_samples: int | None = Field(
+        default=None,
+        description="Total enrolled samples after the operation",
+        examples=[5],
+    )
     duration_ms: int = Field(
         description="Duration of the operation in milliseconds",
         examples=[120],

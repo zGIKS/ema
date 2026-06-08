@@ -24,11 +24,13 @@ class MongoDbPersonRepository(PersonRepository):
         return vec
 
     def _to_domain(self, doc: dict) -> PersonAggregate:
+        sample_image_urls = tuple(doc.get("sample_image_urls") or [])
         samples = tuple(
             FaceSample(
-                embedding=FaceEmbedding(tuple(emb))
+                embedding=FaceEmbedding(tuple(emb)),
+                image_url=sample_image_urls[index] if index < len(sample_image_urls) else None,
             )
-            for emb in doc.get("embeddings", [])
+            for index, emb in enumerate(doc.get("embeddings", []))
         )
         return PersonAggregate(
             person_id=PersonId(doc["person_id"]),
@@ -71,6 +73,7 @@ class MongoDbPersonRepository(PersonRepository):
             "dni": person.dni.value,
             "image_url": person.image_url,
             "embeddings": embeddings_data,
+            "sample_image_urls": [sample.image_url for sample in kept_samples],
             "updated_at": now_epoch,
         }
 

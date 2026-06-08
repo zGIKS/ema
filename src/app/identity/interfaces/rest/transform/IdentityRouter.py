@@ -12,10 +12,12 @@ from src.app.identity.domain.model.commands import (
     AddPersonFaceSamplesCommand,
     RegisterPersonFaceCommand,
 )
+from src.app.identity.domain.model.queries import GetPersonByIdQuery
 from src.app.identity.domain.model.valueobjects import PersonId
 from src.app.identity.interfaces.rest.resources import (
     AddFaceSamplesResponse,
     RegisterResponse,
+    RegisteredPersonDetailResource,
     RegisteredPersonResource,
     RegisteredPersonsPageResponse,
 )
@@ -32,7 +34,7 @@ from src.app.identity.interfaces.rest.dependencies import (
 from src.app.auditory.interfaces.acl.AuditoryContextFacade import AuditoryContextFacade
 from src.app.auditory.interfaces.rest.dependencies import get_auditory_context_facade
 from src.app.shared.interfaces.rest.resources import ErrorResponse
-from src.app.shared.exceptions import ValidationError
+from src.app.shared.exceptions import NotFoundError, ValidationError
 
 router = APIRouter(prefix="/api/v1/identity", tags=["Identity"])
 
@@ -79,6 +81,43 @@ async def get_registered_persons(
     )
 
 
+@router.get(
+    "/persons/{person_id}",
+    response_model=RegisteredPersonDetailResource,
+    status_code=status.HTTP_200_OK,
+    summary="Get person by id",
+    description="Returns full person details, including enrolled face sample images.",
+    responses={
+        200: {"description": "Person found"},
+        404: {"model": ErrorResponse, "description": "Person not found"},
+        422: {"model": ErrorResponse, "description": "Invalid request"},
+    },
+)
+async def get_person_by_id(
+    person_id: str,
+    query_service: Annotated[
+        PersonDirectoryQueryServiceImpl,
+        Depends(get_person_directory_query_service),
+    ],
+) -> RegisteredPersonDetailResource:
+    person = await query_service.handle_get_person_by_id(
+        GetPersonByIdQuery(person_id=PersonId(person_id))
+    )
+
+    if person is None:
+        raise NotFoundError("Person not found")
+
+    return RegisteredPersonDetailResource(
+        uuid=person.person_id.value,
+        first_name=person.first_name.value,
+        last_name=person.last_name.value,
+        dni=person.dni.value,
+        image_url=person.image_url,
+        sample_image_urls=list(person.sample_image_urls),
+        total_samples=person.total_samples,
+    )
+
+
 @router.post(
     "/register",
     response_model=RegisterResponse,
@@ -88,6 +127,7 @@ async def get_registered_persons(
     responses={
         201: {"description": "Person registered successfully"},
         409: {"model": ErrorResponse, "description": "DNI already exists"},
+        502: {"model": ErrorResponse, "description": "Cloudinary or external service failure"},
         422: {"model": ErrorResponse, "description": "Invalid request"},
     },
 )
@@ -144,6 +184,7 @@ async def register_person_face(
             "model": ErrorResponse,
             "description": "Uploaded face does not match the enrolled person",
         },
+        502: {"model": ErrorResponse, "description": "Cloudinary or external service failure"},
         422: {"model": ErrorResponse, "description": "Invalid request"},
     },
 )
@@ -152,10 +193,15 @@ async def add_person_face_samples(
         PersonEnrollmentCommandServiceImpl,
         Depends(get_person_enrollment_command_service),
     ],
+    auditory_facade: Annotated[
+        AuditoryContextFacade,
+        Depends(get_auditory_context_facade),
+    ],
     person_id: str,
     files: list[UploadFile] | None = File(default=None),
     file: UploadFile | None = File(default=None),
 ) -> AddFaceSamplesResponse:
+    started = perf_counter()
     uploads: list[UploadFile] = []
     if files:
         uploads.extend(files)
@@ -170,4 +216,18 @@ async def add_person_face_samples(
     )
     person = await command_service.handle_add_face_samples(command)
 
-    return AddFaceSamplesResponse(person_id=person.person_id.value, total_samples=len(person.samples))
+    await auditory_facade.log_add_person_face_samples(
+        person_id=person.person_id.value,
+        first_name=person.first_name.value,
+        last_name=person.last_name.value,
+        dni=person.dni.value,
+        samples_added=len(uploads),
+        total_samples=person.total_samples,
+        duration_ms=int((perf_counter() - started) * 1000),
+    )
+
+    return AddFaceSamplesResponse(
+        person_id=person.person_id.value,
+        total_samples=person.total_samples,
+        sample_image_urls=[url for url in person.sample_image_urls if url is not None][-len(uploads):],
+    )
