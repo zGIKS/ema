@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from secrets import randbelow
+from uuid import uuid4
 
 
-ADMIN_USER_ID = "U000000001"
-ADMIN_USERNAME = ADMIN_USER_ID
+ADMIN_USER_ID = str(uuid4())
+ADMIN_USERNAME = "U000000001"
 ADMIN_PASSWORD = "Admin12345!"
 
 
@@ -26,18 +26,12 @@ async def upgrade(db) -> None:
     if existing is not None:
         return
 
-    for _ in range(100):
-        user_id = ADMIN_USER_ID if _ == 0 else f"U{randbelow(1_000_000_000):09d}"
-        if await db.iam_users.find_one({"user_id": user_id}) is None:
-            await db.iam_users.insert_one(
-                {
-                    "user_id": user_id,
-                    "username": ADMIN_USERNAME,
-                    "password_hash": _hash_password(ADMIN_PASSWORD),
-                    "role": "admin",
-                    "is_active": True,
-                }
-            )
-            return
-
-    raise RuntimeError("Unable to generate unique admin user_id")
+    await db.iam_users.insert_one(
+        {
+            "user_id": ADMIN_USER_ID,
+            "username": ADMIN_USERNAME,
+            "password_hash": _hash_password(ADMIN_PASSWORD),
+            "role": "admin",
+            "is_active": True,
+        }
+    )

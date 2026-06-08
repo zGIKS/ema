@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from secrets import randbelow
+from uuid import uuid4
 
 import jwt
 
@@ -88,7 +88,7 @@ class IamCommandServiceImpl(IamCommandService):
 
     async def _generate_unique_user_id(self) -> str:
         for _ in range(100):
-            candidate = f"U{randbelow(1_000_000_000):09d}"
+            candidate = str(uuid4())
             if await self._user_repository.find_by_id(UserId(candidate)) is None:
                 return candidate
 
