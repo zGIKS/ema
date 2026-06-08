@@ -1,80 +1,37 @@
-# Face Recognition API (Clean Architecture / DDD-ish)
+# Face Recognition API
 
-FastAPI service that supports:
+Minimal FastAPI service for face enrollment and identification.
 
-- **Detection**: find a face bounding box in an image
-- **Identification**: compute an embedding and match it against enrolled identities
-- **Enrollment**: register a new person with one or more reference images
+Structure:
 
-This repo is structured as a bounded context under `src/contexts/identification/` with strict separation:
+- `src/app/identity/` for registration and DNI validation
+- `src/app/biometrics/` for face matching and identification
+- `src/app/shared/` for shared app code
 
-- `domain/`: value objects, commands, ports (interfaces)
-- `application/`: command handlers (orchestrate the use case)
-- `infrastructure/`: AI adapters, persistence adapters, ACL mappers
-- `api/`: FastAPI routing + Pydantic schemas (DTOs)
-
-## Quickstart
-
-1. Install deps (recommended: Nix):
+## Run
 
 ```bash
 nix-shell
+uvicorn src.main:app --host 0.0.0.0 --port 8080
 ```
 
-To include the InsightFace engine deps in Nix:
+`.env` is loaded automatically.
 
-```bash
-nix-shell --arg withML true
-```
+Required `.env` keys:
 
-Alternatively, with `uv` (non-Nix environments):
+- `FR_ENGINE=insightface`
+- `FR_DECOLECTA_API_KEY=...`
+- `FR_DECOLECTA_BASE_URL=https://api.decolecta.com`
+- `FR_CLOUDINARY_API_KEY=...`
+- `FR_CLOUDINARY_API_SECRET=...`
+- `FR_CLOUDINARY_CLOUD_NAME=...`
+- `FR_DB_URL=mongodb://admin:admin@localhost:27017`
+- `FR_DB_NAME=ema`
+## Notes
 
-```bash
-uv sync
-
-# Optional: real recognition engine
-uv sync --extra ml
-```
-
-Then run with:
-
-```bash
-uv run uvicorn src.main:app --reload --port 8000
-```
-
-2. Run:
-
-```bash
-uvicorn src.main:app --reload --port 8000
-```
-
-Embeddings persistence (MVP):
-
-- By default, enrolled faces are stored in a local SQLite file at `./data/fr.sqlite3`.
-- You can change it with `FR_DB_PATH=/path/to/fr.sqlite3`.
-
-Note: images are not stored; only embeddings are persisted.
-
-3. Try:
-
-- `POST /register` with `person_id` + `file`
-- You can also send multiple images using `files` (repeat the form field)
-- `POST /identify` with `file`
-
-Note: the current AI implementation is a **stub** (deterministic pseudo-embedding) so the architecture is runnable without heavyweight ML dependencies.
-
-## Real recognition (recommended)
-
-This repo includes an optional InsightFace-based engine (real face detection + embeddings).
-
-Run with InsightFace:
-
-```bash
-FR_ENGINE=insightface uvicorn src.main:app --reload --port 8000
-```
-
-Engine selection:
-
-- `FR_ENGINE=auto` (default): uses InsightFace if installed, else falls back to stub
-- `FR_ENGINE=stub`: always use stub
-- `FR_ENGINE=insightface`: require InsightFace deps (fails fast if missing)
+- InsightFace is required.
+- Images are stored in Cloudinary and only embeddings are persisted in MongoDB.
+- `POST /api/v1/identity/register` creates a person once using DNI + one image.
+- `GET /api/v1/biometrics/identify` is the biometric read path.
+- `GET /api/v1/identity/persons` is the identity read path.
+- `POST /api/v1/identity/persons/{person_id}/samples` adds more photos.

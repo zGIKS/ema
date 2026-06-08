@@ -1,16 +1,31 @@
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from src.contexts.identification.interfaces.rest.dependencies import init_database
-from src.contexts.identification.interfaces.rest.transform.IdentificationRouter import (
-    router as identification_router,
+from src.app.biometrics.interfaces.rest.transform.BiometricsRouter import (
+    router as biometrics_router,
 )
-from src.core.exceptions import DomainError, NotFoundError, ValidationError
+from src.app.identity.interfaces.rest.dependencies import init_database
+from src.app.identity.interfaces.rest.transform.IdentityRouter import (
+    router as identity_router,
+)
+from src.app.auditory.interfaces.rest.transform.AuditoryRouter import (
+    router as auditory_router,
+)
+from src.app.shared.exceptions import (
+    ConflictError,
+    DomainError,
+    ExternalServiceError,
+    NotFoundError,
+    ValidationError,
+)
 
 
 def create_app() -> FastAPI:
     app = FastAPI(title="Face Recognition API", version="0.1.0")
-    app.include_router(identification_router)
+    app.include_router(identity_router)
+    app.include_router(biometrics_router)
+    app.include_router(auditory_router)
 
     @app.on_event("startup")
     async def _init_database() -> None:
@@ -18,15 +33,31 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(ValidationError)
     async def _validation_error_handler(_request, exc: ValidationError):
-        return JSONResponse(status_code=422, content={"detail": str(exc)})
+        return JSONResponse(status_code=422, content={"detail": "Invalid request payload"})
+
+    @app.exception_handler(RequestValidationError)
+    async def _request_validation_error_handler(_request, _exc: RequestValidationError):
+        return JSONResponse(status_code=422, content={"detail": "Invalid request payload"})
 
     @app.exception_handler(NotFoundError)
     async def _not_found_error_handler(_request, exc: NotFoundError):
-        return JSONResponse(status_code=404, content={"detail": str(exc)})
+        return JSONResponse(status_code=404, content={"detail": "Resource not found"})
+
+    @app.exception_handler(ConflictError)
+    async def _conflict_error_handler(_request, exc: ConflictError):
+        return JSONResponse(status_code=409, content={"detail": "Conflict"})
 
     @app.exception_handler(DomainError)
     async def _domain_error_handler(_request, exc: DomainError):
-        return JSONResponse(status_code=400, content={"detail": str(exc)})
+        return JSONResponse(status_code=400, content={"detail": "Invalid request"})
+
+    @app.exception_handler(ExternalServiceError)
+    async def _external_service_error_handler(_request, exc: ExternalServiceError):
+        return JSONResponse(status_code=502, content={"detail": str(exc)})
+
+    @app.exception_handler(Exception)
+    async def _unhandled_error_handler(_request, _exc: Exception):
+        return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
     return app
 
