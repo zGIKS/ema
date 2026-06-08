@@ -31,7 +31,8 @@ class IdentificationResponse(BaseModel):
         description="Cloudinary URL of the matched person's representative photo",
         examples=["https://res.cloudinary.com/demo/image/upload/v1719307544/sample.jpg"],
     )
-    confidence: float = Field(
+    confidence: float | None = Field(
+        default=None,
         ge=0.0,
         le=1.0,
         description="Confidence score normalized to the [0,1] range",

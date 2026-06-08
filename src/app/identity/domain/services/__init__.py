@@ -5,9 +5,13 @@ from src.app.identity.domain.services.PersonDirectoryQueryService import (
 from src.app.identity.domain.services.PersonEnrollmentCommandService import (
     PersonEnrollmentCommandService,
 )
+from src.app.identity.domain.services.UsageLogQueryService import (
+    UsageLogQueryService,
+)
 
 __all__ = [
     "DniLookupQueryService",
     "PersonDirectoryQueryService",
     "PersonEnrollmentCommandService",
+    "UsageLogQueryService",
 ]

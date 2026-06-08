@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from src.app.identity.domain.repositories import UsageLogRepository
+from src.app.identity.domain.model.entities.UsageLog import UsageLog
 
 class MongoDbUsageLogRepository(UsageLogRepository):
     def __init__(self, database: AsyncIOMotorDatabase) -> None:
@@ -13,15 +14,17 @@ class MongoDbUsageLogRepository(UsageLogRepository):
         self,
         *,
         person_id: str | None,
-        confidence: float,
+        confidence: float | None,
         duration_ms: int,
+        image_url: str | None = None,
     ) -> None:
         await self._collection.insert_one(
             {
                 "operation": "identify",
                 "person_id": person_id,
-                "confidence": float(confidence),
+                "confidence": float(confidence) if confidence is not None else None,
                 "duration_ms": int(duration_ms),
+                "image_url": image_url,
                 "used_at": int(datetime.now(UTC).timestamp()),
             }
         )
@@ -35,4 +38,31 @@ class MongoDbUsageLogRepository(UsageLogRepository):
                 "duration_ms": int(duration_ms),
                 "used_at": int(datetime.now(UTC).timestamp()),
             }
+        )
+
+    async def find_paginated(
+        self,
+        *,
+        page: int,
+        page_size: int,
+    ) -> tuple[tuple[UsageLog, ...], int]:
+        offset = (page - 1) * page_size
+        total = await self._collection.count_documents({})
+
+        cursor = self._collection.find().sort([("used_at", -1)]).skip(offset).limit(page_size)
+        docs = await cursor.to_list(length=page_size)
+        
+        return (
+            tuple(
+                UsageLog(
+                    operation=doc["operation"],
+                    person_id=doc.get("person_id"),
+                    confidence=doc.get("confidence"),
+                    duration_ms=doc["duration_ms"],
+                    image_url=doc.get("image_url"),
+                    used_at=doc["used_at"],
+                )
+                for doc in docs
+            ),
+            total,
         )

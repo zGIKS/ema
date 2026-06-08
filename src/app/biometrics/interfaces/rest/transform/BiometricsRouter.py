@@ -5,6 +5,8 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, UploadFile, status
 
+from uuid import uuid4
+
 from src.app.biometrics.application.internal.queryservices.PersonIdentificationQueryServiceImpl import (
     PersonIdentificationQueryServiceImpl,
 )
@@ -16,6 +18,12 @@ from src.app.biometrics.interfaces.rest.resources import IdentificationResponse
 from src.app.biometrics.interfaces.rest.dependencies import (
     get_person_identification_query_service,
     get_usage_log_repository,
+)
+from src.app.identity.application.internal.outboundservices.acl.CloudinaryImageUploadService import (
+    CloudinaryImageUploadService,
+)
+from src.app.identity.interfaces.rest.dependencies import (
+    get_cloudinary_image_upload_service,
 )
 from src.app.shared.interfaces.rest.resources import ErrorResponse
 
@@ -43,17 +51,36 @@ async def identify_person(
         MongoDbUsageLogRepository,
         Depends(get_usage_log_repository),
     ],
+    image_upload_service: Annotated[
+        CloudinaryImageUploadService,
+        Depends(get_cloudinary_image_upload_service),
+    ],
     file: UploadFile = File(..., description="Image file that contains one face"),
 ) -> IdentificationResponse:
     started = perf_counter()
     image_bytes = await file.read()
+
+    # Upload query image to Cloudinary for audit/telemetry
+    query_image_url = None
+    try:
+        query_image_url = await image_upload_service.upload_image(
+            image_bytes=image_bytes,
+            public_id=f"biometrics/identifications/{uuid4()}/query",
+            filename=file.filename,
+            content_type=file.content_type,
+        )
+    except Exception:
+        # If upload fails, continue identification flow but log without image_url
+        pass
+
     query = IdentifyPersonQuery(image_bytes=image_bytes)
     identification = await query_service.handle_identify_person(query)
 
     await usage_log_repository.log_identify(
         person_id=identification.person_id.value if identification.person_id else None,
-        confidence=identification.confidence.value,
+        confidence=identification.confidence.value if identification.confidence else None,
         duration_ms=int((perf_counter() - started) * 1000),
+        image_url=query_image_url,
     )
 
     return IdentificationResponse(
@@ -62,5 +89,5 @@ async def identify_person(
         last_name=identification.last_name,
         dni=identification.dni,
         image_url=identification.image_url,
-        confidence=identification.confidence.value,
+        confidence=identification.confidence.value if identification.confidence else None,
     )

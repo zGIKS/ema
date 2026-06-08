@@ -127,5 +127,19 @@ async def get_usage_log_repository(
     return MongoDbUsageLogRepository(database=database)
 
 
+from src.app.identity.application.internal.queryservices.UsageLogQueryServiceImpl import (
+    UsageLogQueryServiceImpl,
+)
+
+
+async def get_usage_log_query_service(
+    usage_log_repository: Annotated[
+        MongoDbUsageLogRepository,
+        Depends(get_usage_log_repository),
+    ],
+) -> UsageLogQueryServiceImpl:
+    return UsageLogQueryServiceImpl(usage_log_repository=usage_log_repository)
+
+
 async def init_database() -> None:
     await _client_factory().init_database()

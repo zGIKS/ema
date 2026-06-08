@@ -9,6 +9,10 @@ from src.app.identity.interfaces.rest.resources.RegisteredPersonResource import 
 from src.app.identity.interfaces.rest.resources.RegisteredPersonsPageResponse import (
     RegisteredPersonsPageResponse,
 )
+from src.app.identity.interfaces.rest.resources.UsageLogResource import UsageLogResource
+from src.app.identity.interfaces.rest.resources.UsageLogsPageResponse import (
+    UsageLogsPageResponse,
+)
 
 __all__ = [
     "AddFaceSamplesResponse",
@@ -16,4 +20,6 @@ __all__ = [
     "RegisterResponse",
     "RegisteredPersonResource",
     "RegisteredPersonsPageResponse",
+    "UsageLogResource",
+    "UsageLogsPageResponse",
 ]

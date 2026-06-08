@@ -18,12 +18,18 @@ from src.app.identity.interfaces.rest.resources import (
     RegisterResponse,
     RegisteredPersonResource,
     RegisteredPersonsPageResponse,
+    UsageLogResource,
+    UsageLogsPageResponse,
 )
 from src.app.identity.domain.model.queries.GetRegisteredPersonsQuery import (
     GetRegisteredPersonsQuery,
 )
+from src.app.identity.domain.model.queries.GetUsageLogsQuery import GetUsageLogsQuery
 from src.app.identity.application.internal.queryservices.PersonDirectoryQueryServiceImpl import (
     PersonDirectoryQueryServiceImpl,
+)
+from src.app.identity.application.internal.queryservices.UsageLogQueryServiceImpl import (
+    UsageLogQueryServiceImpl,
 )
 from src.app.identity.infrastructure.persistence.mongodb.repositories.MongoDbUsageLogRepository import (
     MongoDbUsageLogRepository,
@@ -32,6 +38,7 @@ from src.app.identity.interfaces.rest.dependencies import (
     get_person_directory_query_service,
     get_person_enrollment_command_service,
     get_usage_log_repository,
+    get_usage_log_query_service,
 )
 from src.app.shared.interfaces.rest.resources import ErrorResponse
 from src.app.shared.exceptions import ValidationError
@@ -170,3 +177,39 @@ async def add_person_face_samples(
     person = await command_service.handle_add_face_samples(command)
 
     return AddFaceSamplesResponse(person_id=person.person_id.value, total_samples=len(person.samples))
+
+
+@router.get(
+    "/usage-logs",
+    response_model=UsageLogsPageResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get usage logs",
+    description="Returns a paginated list of usage/identification logs.",
+)
+async def get_usage_logs(
+    query_service: Annotated[
+        UsageLogQueryServiceImpl,
+        Depends(get_usage_log_query_service),
+    ],
+    page: int = 1,
+    page_size: int = 20,
+) -> UsageLogsPageResponse:
+    query = GetUsageLogsQuery(page=page, page_size=page_size)
+    logs_page = await query_service.handle_get_usage_logs(query)
+
+    return UsageLogsPageResponse(
+        items=[
+            UsageLogResource(
+                operation=log.operation,
+                person_id=log.person_id,
+                confidence=log.confidence,
+                duration_ms=log.duration_ms,
+                image_url=log.image_url,
+                used_at=log.used_at,
+            )
+            for log in logs_page.items
+        ],
+        page=logs_page.page,
+        page_size=logs_page.page_size,
+        total=logs_page.total,
+    )
