@@ -161,6 +161,7 @@ async def register_person_face(
         last_name=person.last_name.value,
         dni=person.dni.value,
         duration_ms=int((perf_counter() - started) * 1000),
+        image_url=person.image_url,
     )
 
     return RegisterResponse(

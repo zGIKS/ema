@@ -10,3 +10,4 @@ class LogRegisterCommand:
     last_name: str
     dni: str
     duration_ms: int
+    image_url: str | None = None

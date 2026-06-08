@@ -43,6 +43,7 @@ class AuditoryContextFacadeImpl(AuditoryContextFacade):
         last_name: str,
         dni: str,
         duration_ms: int,
+        image_url: str | None = None,
     ) -> None:
         command = LogRegisterCommand(
             person_id=person_id,
@@ -50,6 +51,7 @@ class AuditoryContextFacadeImpl(AuditoryContextFacade):
             last_name=last_name,
             dni=dni,
             duration_ms=duration_ms,
+            image_url=image_url,
         )
         await self._command_service.handle_log_register(command)
 

@@ -44,6 +44,7 @@ class MongoDbUsageLogRepository(UsageLogRepository):
         last_name: str,
         dni: str,
         duration_ms: int,
+        image_url: str | None = None,
     ) -> None:
         await self._collection.insert_one(
             {
@@ -54,6 +55,7 @@ class MongoDbUsageLogRepository(UsageLogRepository):
                 "dni": dni,
                 "confidence": None,
                 "duration_ms": int(duration_ms),
+                "image_url": image_url,
                 "used_at": int(datetime.now(UTC).timestamp()),
             }
         )

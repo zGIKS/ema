@@ -31,6 +31,7 @@ class UsageLogCommandServiceImpl(UsageLogCommandService):
             last_name=command.last_name,
             dni=command.dni,
             duration_ms=command.duration_ms,
+            image_url=command.image_url,
         )
 
     async def handle_log_add_person_face_samples(

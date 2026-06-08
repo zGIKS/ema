@@ -13,7 +13,13 @@ class UsageLogRepository(Protocol):
     ) -> None:
         ...
 
-    async def log_register(self, *, person_id: str, duration_ms: int) -> None:
+    async def log_register(
+        self,
+        *,
+        person_id: str,
+        duration_ms: int,
+        image_url: str | None = None,
+    ) -> None:
         ...
 
     async def find_paginated(

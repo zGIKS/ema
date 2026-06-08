@@ -29,13 +29,20 @@ class MongoDbUsageLogRepository(UsageLogRepository):
             }
         )
 
-    async def log_register(self, *, person_id: str, duration_ms: int) -> None:
+    async def log_register(
+        self,
+        *,
+        person_id: str,
+        duration_ms: int,
+        image_url: str | None = None,
+    ) -> None:
         await self._collection.insert_one(
             {
                 "operation": "register",
                 "person_id": person_id,
                 "confidence": None,
                 "duration_ms": int(duration_ms),
+                "image_url": image_url,
                 "used_at": int(datetime.now(UTC).timestamp()),
             }
         )
