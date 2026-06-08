@@ -40,6 +40,9 @@ async def get_usage_logs(
             UsageLogResource(
                 operation=log.operation,
                 person_id=log.person_id,
+                first_name=log.first_name,
+                last_name=log.last_name,
+                dni=log.dni,
                 confidence=log.confidence,
                 duration_ms=log.duration_ms,
                 image_url=log.image_url,

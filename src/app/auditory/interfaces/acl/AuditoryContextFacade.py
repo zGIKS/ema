@@ -8,11 +8,22 @@ class AuditoryContextFacade(Protocol):
         self,
         *,
         person_id: str | None,
+        first_name: str | None = None,
+        last_name: str | None = None,
+        dni: str | None = None,
         confidence: float | None,
         duration_ms: int,
         image_url: str | None = None,
     ) -> None:
         ...
 
-    async def log_register(self, *, person_id: str, duration_ms: int) -> None:
+    async def log_register(
+        self,
+        *,
+        person_id: str,
+        first_name: str,
+        last_name: str,
+        dni: str,
+        duration_ms: int,
+    ) -> None:
         ...

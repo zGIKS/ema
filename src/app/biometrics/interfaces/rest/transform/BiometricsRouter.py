@@ -74,6 +74,9 @@ async def identify_person(
 
     await auditory_facade.log_identify(
         person_id=identification.person_id.value if identification.person_id else None,
+        first_name=identification.first_name,
+        last_name=identification.last_name,
+        dni=identification.dni,
         confidence=identification.confidence.value if identification.confidence else None,
         duration_ms=int((perf_counter() - started) * 1000),
         image_url=query_image_url,

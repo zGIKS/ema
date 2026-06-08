@@ -7,6 +7,9 @@ from dataclasses import dataclass
 class UsageLog:
     operation: str
     person_id: str | None
+    first_name: str | None
+    last_name: str | None
+    dni: str | None
     confidence: float | None
     duration_ms: int
     image_url: str | None

@@ -15,6 +15,21 @@ class UsageLogResource(BaseModel):
         description="Matched or registered person UUID",
         examples=["550e8400-e29b-41d4-a716-446655440000"],
     )
+    first_name: str | None = Field(
+        default=None,
+        description="First name of the person",
+        examples=["John"],
+    )
+    last_name: str | None = Field(
+        default=None,
+        description="Last name of the person",
+        examples=["Doe"],
+    )
+    dni: str | None = Field(
+        default=None,
+        description="DNI of the person",
+        examples=["12345678"],
+    )
     confidence: float | None = Field(
         default=None,
         description="Confidence score of the identification",

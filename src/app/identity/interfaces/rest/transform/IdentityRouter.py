@@ -117,6 +117,9 @@ async def register_person_face(
 
     await auditory_facade.log_register(
         person_id=person.person_id.value,
+        first_name=person.first_name.value,
+        last_name=person.last_name.value,
+        dni=person.dni.value,
         duration_ms=int((perf_counter() - started) * 1000),
     )
 

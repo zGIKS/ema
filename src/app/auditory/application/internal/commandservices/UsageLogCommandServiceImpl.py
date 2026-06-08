@@ -13,6 +13,9 @@ class UsageLogCommandServiceImpl(UsageLogCommandService):
     async def handle_log_identify(self, command: LogIdentifyCommand) -> None:
         await self._usage_log_repository.log_identify(
             person_id=command.person_id,
+            first_name=command.first_name,
+            last_name=command.last_name,
+            dni=command.dni,
             confidence=command.confidence,
             duration_ms=command.duration_ms,
             image_url=command.image_url,
@@ -21,5 +24,8 @@ class UsageLogCommandServiceImpl(UsageLogCommandService):
     async def handle_log_register(self, command: LogRegisterCommand) -> None:
         await self._usage_log_repository.log_register(
             person_id=command.person_id,
+            first_name=command.first_name,
+            last_name=command.last_name,
+            dni=command.dni,
             duration_ms=command.duration_ms,
         )

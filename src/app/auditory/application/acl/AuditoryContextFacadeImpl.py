@@ -14,18 +14,38 @@ class AuditoryContextFacadeImpl(AuditoryContextFacade):
         self,
         *,
         person_id: str | None,
+        first_name: str | None = None,
+        last_name: str | None = None,
+        dni: str | None = None,
         confidence: float | None,
         duration_ms: int,
         image_url: str | None = None,
     ) -> None:
         command = LogIdentifyCommand(
             person_id=person_id,
+            first_name=first_name,
+            last_name=last_name,
+            dni=dni,
             confidence=confidence,
             duration_ms=duration_ms,
             image_url=image_url,
         )
         await self._command_service.handle_log_identify(command)
 
-    async def log_register(self, *, person_id: str, duration_ms: int) -> None:
-        command = LogRegisterCommand(person_id=person_id, duration_ms=duration_ms)
+    async def log_register(
+        self,
+        *,
+        person_id: str,
+        first_name: str,
+        last_name: str,
+        dni: str,
+        duration_ms: int,
+    ) -> None:
+        command = LogRegisterCommand(
+            person_id=person_id,
+            first_name=first_name,
+            last_name=last_name,
+            dni=dni,
+            duration_ms=duration_ms,
+        )
         await self._command_service.handle_log_register(command)
