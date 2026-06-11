@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import sqrt
 from uuid import uuid4
-
-import numpy as np
 
 from src.app.identity.domain.model.entities.FaceSample import FaceSample
 from src.app.biometrics.domain.model.valueobjects import FaceEmbedding
@@ -73,15 +72,21 @@ class PersonAggregate:
         if not self.samples:
             return False
 
-        candidate = np.asarray(embedding.values, dtype=np.float32).reshape(-1)
-        candidate /= max(1e-6, float(np.linalg.norm(candidate)))
+        candidate = self._normalize(embedding.values)
 
         best_similarity = -1.0
         for sample in self.samples:
-            current = np.asarray(sample.embedding.values, dtype=np.float32).reshape(-1)
-            current /= max(1e-6, float(np.linalg.norm(current)))
-            similarity = float(np.dot(candidate, current))
+            current = self._normalize(sample.embedding.values)
+            similarity = sum(a * b for a, b in zip(candidate, current, strict=False))
             if similarity > best_similarity:
                 best_similarity = similarity
 
         return best_similarity >= float(threshold)
+
+    @staticmethod
+    def _normalize(values: tuple[float, ...]) -> tuple[float, ...]:
+        vec = tuple(float(v) for v in values)
+        norm = sqrt(sum(v * v for v in vec))
+        if norm <= 1e-6:
+            return vec
+        return tuple(v / norm for v in vec)

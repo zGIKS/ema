@@ -25,13 +25,12 @@ Required `.env` keys:
 - `FR_CLOUDINARY_API_KEY=...`
 - `FR_CLOUDINARY_API_SECRET=...`
 - `FR_CLOUDINARY_CLOUD_NAME=...`
-- `FR_DB_URL=mongodb://admin:admin@localhost:27017`
-- `FR_DB_NAME=ema`
+- `FR_DB_URL=postgresql+asyncpg://postgres:admin@localhost:5432/ema`
 - `FR_JWT_SECRET=...`
 ## Notes
 
 - InsightFace is required.
-- Images are stored in Cloudinary and only embeddings are persisted in MongoDB.
+- Images are stored in Cloudinary and face data is persisted in PostgreSQL.
 - `POST /api/v1/identity/register` creates a person once using DNI + one image.
 - `POST /api/v1/iam/login` returns a bearer token using username/password.
 - `POST /api/v1/iam/users` creates users (admin only).
@@ -40,10 +39,10 @@ Required `.env` keys:
 - `POST /api/v1/identity/persons/{person_id}/samples` adds more photos (admin only).
 - `GET /api/v1/auditory/usage-logs` returns all logs for admins and only own logs for users.
 
-## Mongo migrations
+## Database init
 
 Run:
 
 ```bash
-python mongo/migrations/runner.py
+uvicorn src.main:app --host 0.0.0.0 --port 8080
 ```

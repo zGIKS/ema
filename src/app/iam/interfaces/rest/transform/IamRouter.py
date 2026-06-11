@@ -9,7 +9,7 @@ from src.app.iam.application.internal.commandservices.IamCommandServiceImpl impo
 )
 from src.app.iam.domain.model.commands import AuthenticateUserCommand, CreateUserCommand
 from src.app.iam.domain.model.entities import CurrentUser
-from src.app.iam.infrastructure.persistence.mongodb.repositories import MongoDbIamUserRepository
+from src.app.iam.infrastructure.persistence.sqlalchemy.repositories import SqlAlchemyIamUserRepository
 from src.app.iam.interfaces.rest.dependencies import require_admin_user
 from src.app.iam.interfaces.rest.resources import (
     AuthenticatedUserResource,
@@ -33,7 +33,7 @@ async def login(
     request: IamLoginRequest,
     database=Depends(get_database),
 ) -> IamLoginResponse:
-    repository = MongoDbIamUserRepository(database)
+    repository = SqlAlchemyIamUserRepository(database)
     service = IamCommandServiceImpl(user_repository=repository)
     token = await service.handle_authenticate_user(
         AuthenticateUserCommand(username=request.username, password=request.password)
@@ -59,7 +59,7 @@ async def create_user(
     _current_user: Annotated[CurrentUser, Depends(require_admin_user)],
     database=Depends(get_database),
 ) -> AuthenticatedUserResource:
-    repository = MongoDbIamUserRepository(database)
+    repository = SqlAlchemyIamUserRepository(database)
     service = IamCommandServiceImpl(user_repository=repository)
     user = await service.handle_create_user(
         CreateUserCommand(

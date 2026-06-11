@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-import numpy as np
-
 from src.app.shared.exceptions import NotFoundError, ValidationError
 from src.app.biometrics.domain.model.results import FaceExtractionResult
 from src.app.biometrics.domain.model.valueobjects import BoundingBox, FaceEmbedding
@@ -12,8 +10,8 @@ from src.app.biometrics.domain.services import FaceEmbeddingExtractionQueryServi
 
 @dataclass(frozen=True, slots=True)
 class _FacePick:
-    embedding: np.ndarray
-    bbox: np.ndarray  # [x1,y1,x2,y2]
+    embedding: tuple[float, ...]
+    bbox: tuple[float, float, float, float]
 
 
 class InsightFaceRecognitionEngine(FaceEmbeddingExtractionQueryService):
@@ -53,19 +51,20 @@ class InsightFaceRecognitionEngine(FaceEmbeddingExtractionQueryService):
             raise NotFoundError("No face detected")
 
         pick = self._pick_face(faces)
-        emb = np.asarray(pick.embedding, dtype=np.float32).reshape(-1)
-        emb /= max(1e-6, float(np.linalg.norm(emb)))
+        emb = self._normalize(pick.embedding)
 
-        x1, y1, x2, y2 = (int(v) for v in pick.bbox.tolist())
+        x1, y1, x2, y2 = (int(v) for v in pick.bbox)
         w = max(1, x2 - x1)
         h = max(1, y2 - y1)
         box = BoundingBox(x=max(0, x1), y=max(0, y1), w=w, h=h)
         return FaceExtractionResult(
-            embedding=FaceEmbedding(tuple(float(x) for x in emb.tolist())),
+            embedding=FaceEmbedding(tuple(float(x) for x in emb)),
             box=box,
         )
 
-    def _decode(self, image_bytes: bytes) -> np.ndarray:
+    def _decode(self, image_bytes: bytes):
+        import numpy as np  # local import to keep module load lightweight
+
         arr = np.frombuffer(image_bytes, dtype=np.uint8)
         img = self._cv2.imdecode(arr, self._cv2.IMREAD_COLOR)
         if img is None:
@@ -84,11 +83,11 @@ class InsightFaceRecognitionEngine(FaceEmbeddingExtractionQueryService):
             bbox = getattr(f, "bbox", None)
             if emb is None or bbox is None:
                 continue
-            bb = np.asarray(bbox, dtype=np.float32).reshape(-1)
-            if bb.size < 4:
+            bb = tuple(float(v) for v in bbox)
+            if len(bb) < 4:
                 continue
             area = float(max(0.0, (bb[2] - bb[0])) * max(0.0, (bb[3] - bb[1])))
-            candidate = _FacePick(embedding=np.asarray(emb), bbox=bb[:4])
+            candidate = _FacePick(embedding=tuple(float(v) for v in emb), bbox=bb[:4])
             if best is None:
                 best = candidate
                 best_area = area
@@ -99,3 +98,13 @@ class InsightFaceRecognitionEngine(FaceEmbeddingExtractionQueryService):
         if best is None:
             raise NotFoundError("No usable face detected")
         return best
+
+    @staticmethod
+    def _normalize(values: tuple[float, ...]) -> tuple[float, ...]:
+        import math
+
+        vec = tuple(float(v) for v in values)
+        norm = math.sqrt(sum(v * v for v in vec))
+        if norm <= 1e-6:
+            return vec
+        return tuple(v / norm for v in vec)

@@ -16,7 +16,6 @@ class Settings(BaseSettings):
     cloudinary_api_secret: str
     cloudinary_cloud_name: str
     db_url: str
-    db_name: str
     jwt_secret: str
 
     insightface_model: str = "buffalo_l"

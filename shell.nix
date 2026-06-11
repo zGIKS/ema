@@ -15,7 +15,8 @@ pkgs.mkShell {
       python-dotenv
       python-multipart
       pyjwt
-      motor
+      sqlalchemy
+      asyncpg
       numpy
       httpx
       insightface

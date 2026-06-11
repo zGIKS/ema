@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from functools import lru_cache
 from typing import Annotated
 
 from fastapi import Depends
-from motor.motor_asyncio import AsyncIOMotorDatabase
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.identity.application.internal.commandservices.PersonEnrollmentCommandServiceImpl import (
     PersonEnrollmentCommandServiceImpl,
@@ -25,26 +26,28 @@ from src.app.biometrics.infrastructure.ai.insightface_engine import (
 from src.app.identity.application.internal.queryservices.PersonDirectoryQueryServiceImpl import (
     PersonDirectoryQueryServiceImpl,
 )
-from src.app.identity.infrastructure.persistence.mongodb.MongoDbClientFactory import (
-    MongoDbClientFactory,
+from src.app.identity.infrastructure.persistence.sqlalchemy.repositories import (
+    SqlAlchemyPersonRepository,
 )
-from src.app.identity.infrastructure.persistence.mongodb.repositories.MongoDbPersonRepository import (
-    MongoDbPersonRepository,
+from src.app.auditory.infrastructure.persistence.sqlalchemy.repositories import (
+    SqlAlchemyUsageLogRepository,
 )
-from src.app.identity.infrastructure.persistence.mongodb.repositories.MongoDbUsageLogRepository import (
-    MongoDbUsageLogRepository,
+from src.app.iam.application.internal.commandservices.IamCommandServiceImpl import (
+    IamCommandServiceImpl,
 )
-from mongo.migrations.runner import run_migrations
+from src.app.iam.domain.model.commands import CreateUserCommand
+from src.app.iam.domain.model.valueobjects import UserRole
+from src.app.iam.infrastructure.persistence.sqlalchemy.repositories import (
+    SqlAlchemyIamUserRepository,
+)
 from src.app.shared.config import settings
+from src.app.shared.infrastructure.persistence.sqlalchemy import get_session, init_database as init_sql_database
+from src.app.shared.infrastructure.persistence.sqlalchemy.database import get_session_factory
 
 
-@lru_cache(maxsize=1)
-def _client_factory() -> MongoDbClientFactory:
-    return MongoDbClientFactory(db_url=settings.db_url, db_name=settings.db_name)
-
-
-async def get_database() -> AsyncIOMotorDatabase:
-    return _client_factory().database()
+async def get_database() -> AsyncIterator[AsyncSession]:
+    async for session in get_session():
+        yield session
 
 
 def get_embedding_extraction_query_service() -> FaceEmbeddingExtractionQueryService:
@@ -84,7 +87,7 @@ def get_cloudinary_image_upload_service() -> CloudinaryImageUploadService:
 
 
 async def get_person_enrollment_command_service(
-    database: Annotated[AsyncIOMotorDatabase, Depends(get_database)],
+    database: Annotated[AsyncSession, Depends(get_database)],
     extraction_service: Annotated[
         FaceEmbeddingExtractionService,
         Depends(get_face_embedding_extraction_acl_service),
@@ -98,7 +101,7 @@ async def get_person_enrollment_command_service(
         Depends(get_dni_lookup_query_service),
     ],
 ) -> PersonEnrollmentCommandServiceImpl:
-    repository = MongoDbPersonRepository(
+    repository = SqlAlchemyPersonRepository(
         database=database,
         max_embeddings_per_person=settings.max_embeddings_per_person,
     )
@@ -113,9 +116,9 @@ async def get_person_enrollment_command_service(
 
 
 async def get_person_directory_query_service(
-    database: Annotated[AsyncIOMotorDatabase, Depends(get_database)],
+    database: Annotated[AsyncSession, Depends(get_database)],
 ) -> PersonDirectoryQueryServiceImpl:
-    repository = MongoDbPersonRepository(
+    repository = SqlAlchemyPersonRepository(
         database=database,
         max_embeddings_per_person=settings.max_embeddings_per_person,
     )
@@ -123,9 +126,9 @@ async def get_person_directory_query_service(
 
 
 async def get_usage_log_repository(
-    database: Annotated[AsyncIOMotorDatabase, Depends(get_database)],
-) -> MongoDbUsageLogRepository:
-    return MongoDbUsageLogRepository(database=database)
+    database: Annotated[AsyncSession, Depends(get_database)],
+) -> SqlAlchemyUsageLogRepository:
+    return SqlAlchemyUsageLogRepository(session=database)
 
 
 from src.app.identity.application.internal.queryservices.UsageLogQueryServiceImpl import (
@@ -135,7 +138,7 @@ from src.app.identity.application.internal.queryservices.UsageLogQueryServiceImp
 
 async def get_usage_log_query_service(
     usage_log_repository: Annotated[
-        MongoDbUsageLogRepository,
+        SqlAlchemyUsageLogRepository,
         Depends(get_usage_log_repository),
     ],
 ) -> UsageLogQueryServiceImpl:
@@ -143,5 +146,15 @@ async def get_usage_log_query_service(
 
 
 async def init_database() -> None:
-    await _client_factory().init_database()
-    await run_migrations()
+    await init_sql_database()
+    async with get_session_factory()() as session:
+        repository = SqlAlchemyIamUserRepository(session=session)
+        if await repository.find_by_username("U000000001") is None:
+            service = IamCommandServiceImpl(user_repository=repository)
+            await service.handle_create_user(
+                CreateUserCommand(
+                    username="U000000001",
+                    password="Admin12345!A",
+                    role=UserRole.ADMIN,
+                )
+            )
