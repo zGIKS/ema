@@ -46,3 +46,13 @@ Run:
 ```bash
 uvicorn src.main:app --host 0.0.0.0 --port 8080
 ```
+
+The API applies Alembic migrations automatically on startup.
+
+If you want to run migrations manually:
+
+```bash
+uv run alembic upgrade head
+```
+
+The first migration creates the schema and the second seeds the default admin user.

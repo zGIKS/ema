@@ -5,7 +5,6 @@ from fastapi.responses import JSONResponse
 from src.app.biometrics.interfaces.rest.transform.BiometricsRouter import (
     router as biometrics_router,
 )
-from src.app.identity.interfaces.rest.dependencies import init_database
 from src.app.identity.interfaces.rest.transform.IdentityRouter import (
     router as identity_router,
 )
@@ -15,6 +14,7 @@ from src.app.auditory.interfaces.rest.transform.AuditoryRouter import (
 from src.app.iam.interfaces.rest.transform.IamRouter import (
     router as iam_router,
 )
+from src.app.shared.infrastructure.persistence.alembic import upgrade_database_async
 from src.app.shared.exceptions import (
     AuthenticationError,
     AuthorizationError,
@@ -34,8 +34,8 @@ def create_app() -> FastAPI:
     app.include_router(iam_router)
 
     @app.on_event("startup")
-    async def _init_database() -> None:
-        await init_database()
+    async def _apply_migrations() -> None:
+        await upgrade_database_async()
 
     @app.exception_handler(ValidationError)
     async def _validation_error_handler(_request, exc: ValidationError):

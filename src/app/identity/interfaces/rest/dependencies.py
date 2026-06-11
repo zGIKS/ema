@@ -32,17 +32,8 @@ from src.app.identity.infrastructure.persistence.sqlalchemy.repositories import 
 from src.app.auditory.infrastructure.persistence.sqlalchemy.repositories import (
     SqlAlchemyUsageLogRepository,
 )
-from src.app.iam.application.internal.commandservices.IamCommandServiceImpl import (
-    IamCommandServiceImpl,
-)
-from src.app.iam.domain.model.commands import CreateUserCommand
-from src.app.iam.domain.model.valueobjects import UserRole
-from src.app.iam.infrastructure.persistence.sqlalchemy.repositories import (
-    SqlAlchemyIamUserRepository,
-)
 from src.app.shared.config import settings
-from src.app.shared.infrastructure.persistence.sqlalchemy import get_session, init_database as init_sql_database
-from src.app.shared.infrastructure.persistence.sqlalchemy.database import get_session_factory
+from src.app.shared.infrastructure.persistence.sqlalchemy import get_session
 
 
 async def get_database() -> AsyncIterator[AsyncSession]:
@@ -143,18 +134,3 @@ async def get_usage_log_query_service(
     ],
 ) -> UsageLogQueryServiceImpl:
     return UsageLogQueryServiceImpl(usage_log_repository=usage_log_repository)
-
-
-async def init_database() -> None:
-    await init_sql_database()
-    async with get_session_factory()() as session:
-        repository = SqlAlchemyIamUserRepository(session=session)
-        if await repository.find_by_username("U000000001") is None:
-            service = IamCommandServiceImpl(user_repository=repository)
-            await service.handle_create_user(
-                CreateUserCommand(
-                    username="U000000001",
-                    password="Admin12345!A",
-                    role=UserRole.ADMIN,
-                )
-            )

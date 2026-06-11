@@ -9,9 +9,6 @@ from src.app.identity.infrastructure.persistence.sqlalchemy import models as _id
 from src.app.iam.infrastructure.persistence.sqlalchemy import models as _iam_models  # noqa: F401
 from src.app.auditory.infrastructure.persistence.sqlalchemy import models as _auditory_models  # noqa: F401
 from src.app.shared.config import settings
-from src.app.shared.infrastructure.persistence.sqlalchemy.base import Base
-
-
 @lru_cache(maxsize=1)
 def get_engine() -> AsyncEngine:
     return create_async_engine(settings.db_url, echo=False)
@@ -25,8 +22,3 @@ def get_session_factory() -> async_sessionmaker[AsyncSession]:
 async def get_session() -> AsyncIterator[AsyncSession]:
     async with get_session_factory()() as session:
         yield session
-
-
-async def init_database() -> None:
-    async with get_engine().begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)

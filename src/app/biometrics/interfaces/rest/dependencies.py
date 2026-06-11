@@ -22,7 +22,7 @@ from src.app.identity.infrastructure.persistence.sqlalchemy.repositories import 
 from src.app.auditory.infrastructure.persistence.sqlalchemy.repositories import (
     SqlAlchemyUsageLogRepository,
 )
-from src.app.shared.infrastructure.persistence.sqlalchemy import get_session, init_database as init_sql_database
+from src.app.shared.infrastructure.persistence.sqlalchemy import get_session
 from src.app.shared.config import settings
 
 
@@ -69,7 +69,3 @@ async def get_usage_log_repository(
     database: Annotated[AsyncSession, Depends(get_database)],
 ) -> SqlAlchemyUsageLogRepository:
     return SqlAlchemyUsageLogRepository(session=database)
-
-
-async def init_database() -> None:
-    await init_sql_database()

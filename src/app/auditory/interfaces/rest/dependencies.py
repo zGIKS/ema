@@ -18,7 +18,7 @@ from src.app.auditory.application.acl.AuditoryContextFacadeImpl import (
 from src.app.auditory.infrastructure.persistence.sqlalchemy.repositories import (
     SqlAlchemyUsageLogRepository,
 )
-from src.app.shared.infrastructure.persistence.sqlalchemy import get_session, init_database as init_sql_database
+from src.app.shared.infrastructure.persistence.sqlalchemy import get_session
 from src.app.shared.config import settings
 
 
@@ -58,7 +58,3 @@ async def get_auditory_context_facade(
     ],
 ) -> AuditoryContextFacadeImpl:
     return AuditoryContextFacadeImpl(command_service=command_service)
-
-
-async def init_database() -> None:
-    await init_sql_database()

@@ -17,6 +17,7 @@ pkgs.mkShell {
       pyjwt
       sqlalchemy
       asyncpg
+      alembic
       numpy
       httpx
       insightface
