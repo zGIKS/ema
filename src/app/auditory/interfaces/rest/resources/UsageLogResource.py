@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, Field
+from src.app.shared.validation import UUID_REGEX
 
 
 class UsageLogResource(BaseModel):
@@ -12,11 +15,13 @@ class UsageLogResource(BaseModel):
     )
     user_id: str | None = Field(
         default=None,
+        pattern=UUID_REGEX,
         description="User ID who performed the operation",
-        examples=["user-123"],
+        examples=["550e8400-e29b-41d4-a716-446655440000"],
     )
     person_id: str | None = Field(
         default=None,
+        pattern=UUID_REGEX,
         description="Matched or registered person UUID",
         examples=["550e8400-e29b-41d4-a716-446655440000"],
     )
@@ -49,7 +54,7 @@ class UsageLogResource(BaseModel):
         description="Cloudinary URL of the query/representative photo",
         examples=["https://res.cloudinary.com/demo/image/upload/v1719307544/sample.jpg"],
     )
-    used_at: int = Field(
+    used_at: datetime = Field(
         description="Timestamp when the operation was performed",
-        examples=[1719307544],
+        examples=["2026-06-11T15:30:00Z"],
     )

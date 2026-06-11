@@ -27,8 +27,8 @@ def upgrade() -> None:
         sa.Column("password_hash", sa.Text(), nullable=False),
         sa.Column("role", sa.String(length=32), nullable=False),
         sa.Column("is_active", sa.Boolean(), server_default=sa.true(), nullable=False),
-        sa.Column("created_at", sa.BigInteger(), nullable=False),
-        sa.Column("updated_at", sa.BigInteger(), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.PrimaryKeyConstraint("user_id"),
         sa.UniqueConstraint("username"),
     )
@@ -42,8 +42,8 @@ def upgrade() -> None:
         sa.Column("dni", sa.String(length=20), nullable=False),
         sa.Column("image_url", sa.Text(), nullable=True),
         sa.Column("samples", postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'[]'::jsonb"), nullable=False),
-        sa.Column("created_at", sa.BigInteger(), nullable=False),
-        sa.Column("updated_at", sa.BigInteger(), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.PrimaryKeyConstraint("person_id"),
         sa.UniqueConstraint("dni"),
     )
@@ -51,7 +51,7 @@ def upgrade() -> None:
 
     op.create_table(
         "usage_logs",
-        sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
+        sa.Column("id", sa.String(length=36), nullable=False),
         sa.Column("user_id", sa.String(length=36), nullable=True),
         sa.Column("operation", sa.String(length=64), nullable=False),
         sa.Column("person_id", sa.String(length=36), nullable=True),
@@ -63,7 +63,7 @@ def upgrade() -> None:
         sa.Column("total_samples", sa.Integer(), nullable=True),
         sa.Column("duration_ms", sa.Integer(), nullable=False),
         sa.Column("image_url", sa.Text(), nullable=True),
-        sa.Column("used_at", sa.BigInteger(), nullable=False),
+        sa.Column("used_at", sa.DateTime(timezone=True), nullable=False),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_usage_logs_user_id", "usage_logs", ["user_id"], unique=False)
@@ -84,4 +84,3 @@ def downgrade() -> None:
 
     op.drop_index("ix_iam_users_username", table_name="iam_users")
     op.drop_table("iam_users")
-

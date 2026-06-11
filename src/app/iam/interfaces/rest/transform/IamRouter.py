@@ -7,8 +7,9 @@ from fastapi import APIRouter, Depends, status
 from src.app.iam.application.internal.commandservices.IamCommandServiceImpl import (
     IamCommandServiceImpl,
 )
-from src.app.iam.domain.model.commands import AuthenticateUserCommand, CreateUserCommand
+from src.app.iam.domain.model.commands import AuthenticateUserCommand, CreateUserCommand, UpdateUserRoleCommand
 from src.app.iam.domain.model.entities import CurrentUser
+from src.app.iam.domain.model.valueobjects import UserId
 from src.app.iam.infrastructure.persistence.sqlalchemy.repositories import SqlAlchemyIamUserRepository
 from src.app.iam.interfaces.rest.dependencies import require_admin_user
 from src.app.iam.interfaces.rest.resources import (
@@ -16,6 +17,7 @@ from src.app.iam.interfaces.rest.resources import (
     IamLoginRequest,
     IamLoginResponse,
     IamUserRequest,
+    UpdateUserRoleRequest,
 )
 from src.app.identity.interfaces.rest.dependencies import get_database
 from src.app.shared.exceptions import AuthenticationError
@@ -65,6 +67,28 @@ async def create_user(
         CreateUserCommand(
             username=request.username,
             password=request.password,
+        )
+    )
+    return AuthenticatedUserResource(user_id=user.user_id.value, username=user.username, role=user.role.value)
+
+
+@router.patch(
+    "/users/{user_id}/role",
+    response_model=AuthenticatedUserResource,
+    status_code=status.HTTP_200_OK,
+    summary="Update a user role",
+)
+async def update_user_role(
+    user_id: str,
+    request: UpdateUserRoleRequest,
+    _current_user: Annotated[CurrentUser, Depends(require_admin_user)],
+    database=Depends(get_database),
+) -> AuthenticatedUserResource:
+    repository = SqlAlchemyIamUserRepository(database)
+    service = IamCommandServiceImpl(user_repository=repository)
+    user = await service.handle_update_user_role(
+        UpdateUserRoleCommand(
+            user_id=UserId(user_id),
             role=request.role,
         )
     )

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -36,7 +34,6 @@ class SqlAlchemyIamUserRepository(IamUserRepository):
         return None if model is None else self._to_domain(model)
 
     async def save(self, user: IamUser) -> IamUser:
-        now_epoch = int(datetime.now(UTC).timestamp())
         result = await self._session.execute(select(IamUserModel).where(IamUserModel.user_id == user.user_id.value))
         model = result.scalar_one_or_none()
         if model is None:
@@ -46,8 +43,6 @@ class SqlAlchemyIamUserRepository(IamUserRepository):
                 password_hash=user.password_hash,
                 role=user.role.value,
                 is_active=user.is_active,
-                created_at=now_epoch,
-                updated_at=now_epoch,
             )
             self._session.add(model)
         else:
@@ -55,7 +50,6 @@ class SqlAlchemyIamUserRepository(IamUserRepository):
             model.password_hash = user.password_hash
             model.role = user.role.value
             model.is_active = user.is_active
-            model.updated_at = now_epoch
 
         await self._session.commit()
         await self._session.refresh(model)

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from uuid import UUID
 
+from src.app.shared.validation import validate_uuid_string
 
 
 @dataclass(frozen=True, slots=True)
@@ -10,7 +10,4 @@ class UserId:
     value: str
 
     def __post_init__(self) -> None:
-        try:
-            UUID(self.value)
-        except ValueError as error:
-            raise ValueError("user_id must be a valid UUID") from error
+        object.__setattr__(self, "value", validate_uuid_string(self.value, "user_id"))

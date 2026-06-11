@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
-
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -45,6 +43,7 @@ class SqlAlchemyUsageLogRepository(UsageLogRepository):
     ) -> None:
         self._session.add(
             UsageLogModel(
+                # Let the ORM assign the UUID and timestamp defaults.
                 user_id=user_id,
                 operation="identify",
                 person_id=person_id,
@@ -54,7 +53,6 @@ class SqlAlchemyUsageLogRepository(UsageLogRepository):
                 confidence=float(confidence) if confidence is not None else None,
                 duration_ms=int(duration_ms),
                 image_url=image_url,
-                used_at=int(datetime.now(UTC).timestamp()),
             )
         )
         await self._session.commit()
@@ -81,7 +79,6 @@ class SqlAlchemyUsageLogRepository(UsageLogRepository):
                 confidence=None,
                 duration_ms=int(duration_ms),
                 image_url=image_url,
-                used_at=int(datetime.now(UTC).timestamp()),
             )
         )
         await self._session.commit()
@@ -110,7 +107,6 @@ class SqlAlchemyUsageLogRepository(UsageLogRepository):
                 samples_added=int(samples_added),
                 total_samples=int(total_samples),
                 duration_ms=int(duration_ms),
-                used_at=int(datetime.now(UTC).timestamp()),
             )
         )
         await self._session.commit()

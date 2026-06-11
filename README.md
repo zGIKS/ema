@@ -33,7 +33,8 @@ Required `.env` keys:
 - Images are stored in Cloudinary and face data is persisted in PostgreSQL.
 - `POST /api/v1/identity/register` creates a person once using DNI + one image.
 - `POST /api/v1/iam/login` returns a bearer token using username/password.
-- `POST /api/v1/iam/users` creates users (admin only).
+- `POST /api/v1/iam/users` creates users with role `user` only (admin only).
+- `PATCH /api/v1/iam/users/{user_id}/role` lets an admin change a user role.
 - `GET /api/v1/biometrics/identify` is the biometric read path.
 - `GET /api/v1/identity/persons` is admin-only.
 - `POST /api/v1/identity/persons/{person_id}/samples` adds more photos (admin only).

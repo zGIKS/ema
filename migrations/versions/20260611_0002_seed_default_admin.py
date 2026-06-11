@@ -7,12 +7,13 @@ Create Date: 2026-06-11 00:00:00.000000
 
 from __future__ import annotations
 
-import base64
-import hashlib
 from datetime import UTC, datetime
+from uuid import NAMESPACE_DNS, uuid5
 
 from alembic import op
 import sqlalchemy as sa
+
+from src.app.iam.infrastructure.security.passwords import encode_password
 
 
 # revision identifiers, used by Alembic.
@@ -23,18 +24,7 @@ depends_on = None
 
 ADMIN_USERNAME = "U000000001"
 ADMIN_PASSWORD = "Admin12345!A"
-ADMIN_USER_ID = "00000000-0000-0000-0000-000000000001"
-PASSWORD_ITERATIONS = 120_000
-SALT = b"ema-default-admin-salt"
-
-
-def _hash_password(password: str) -> str:
-    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), SALT, PASSWORD_ITERATIONS)
-    return "pbkdf2_sha256$%s$%s$%s" % (
-        PASSWORD_ITERATIONS,
-        base64.b64encode(SALT).decode("ascii"),
-        base64.b64encode(digest).decode("ascii"),
-    )
+ADMIN_USER_ID = str(uuid5(NAMESPACE_DNS, "ema-default-admin"))
 
 
 def upgrade() -> None:
@@ -47,7 +37,7 @@ def upgrade() -> None:
     if exists is not None:
         return
 
-    now_epoch = int(datetime.now(UTC).timestamp())
+    now = datetime.now(UTC)
     bind.execute(
         sa.text(
             """
@@ -73,15 +63,14 @@ def upgrade() -> None:
         {
             "user_id": ADMIN_USER_ID,
             "username": ADMIN_USERNAME,
-            "password_hash": _hash_password(ADMIN_PASSWORD),
+            "password_hash": encode_password(ADMIN_PASSWORD),
             "role": "admin",
             "is_active": True,
-            "created_at": now_epoch,
-            "updated_at": now_epoch,
+            "created_at": now,
+            "updated_at": now,
         },
     )
 
 
 def downgrade() -> None:
     op.execute(sa.text("DELETE FROM iam_users WHERE username = :username"), {"username": ADMIN_USERNAME})
-

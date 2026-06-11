@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from math import sqrt
 
 from sqlalchemy import func, or_, select
@@ -66,7 +65,6 @@ class SqlAlchemyPersonRepository(PersonRepository):
         return None if model is None else self._to_domain(model)
 
     async def save(self, person: PersonAggregate) -> PersonAggregate:
-        now_epoch = int(datetime.now(UTC).timestamp())
         kept_samples = (
             person.samples[-self._max_embeddings_per_person :]
             if len(person.samples) > self._max_embeddings_per_person
@@ -91,8 +89,6 @@ class SqlAlchemyPersonRepository(PersonRepository):
                 dni=person.dni.value,
                 image_url=person.image_url,
                 samples=samples_payload,
-                created_at=now_epoch,
-                updated_at=now_epoch,
             )
             self._session.add(model)
         else:
@@ -101,7 +97,6 @@ class SqlAlchemyPersonRepository(PersonRepository):
             model.dni = person.dni.value
             model.image_url = person.image_url
             model.samples = samples_payload
-            model.updated_at = now_epoch
 
         await self._session.commit()
         await self._session.refresh(model)

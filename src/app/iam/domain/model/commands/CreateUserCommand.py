@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 import re
 
-from src.app.iam.domain.model.valueobjects import UserRole
 from src.app.shared.exceptions import ValidationError
 
 
@@ -14,7 +13,6 @@ _USERNAME_PATTERN = re.compile(r"^U\d{9}$")
 class CreateUserCommand:
     username: str
     password: str
-    role: UserRole
 
     def __post_init__(self) -> None:
         if not _USERNAME_PATTERN.fullmatch(self.username):
