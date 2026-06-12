@@ -22,7 +22,7 @@ down_revision = "20260611_0001"
 branch_labels = None
 depends_on = None
 
-ADMIN_USERNAME = "U000000001"
+ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "Admin12345!A"
 ADMIN_USER_ID = str(uuid5(NAMESPACE_DNS, "ema-default-admin"))
 

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import re
 from uuid import UUID
 
 from src.app.shared.exceptions import ValidationError
+
+USERNAME_REGEX = re.compile(r"^[a-z]{3,30}$")
 
 UUID_REGEX = (
     r"^[0-9a-fA-F]{8}-"

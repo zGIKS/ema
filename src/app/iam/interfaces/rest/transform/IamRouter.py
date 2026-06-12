@@ -41,10 +41,9 @@ async def login(
 ) -> IamLoginResponse:
     repository = SqlAlchemyIamUserRepository(database)
     service = IamCommandServiceImpl(user_repository=repository)
-    token = await service.handle_authenticate_user(
-        AuthenticateUserCommand(username=request.username, password=request.password)
-    )
-    user = await repository.find_by_username(request.username)
+    command = AuthenticateUserCommand(username=request.username, password=request.password)
+    token = await service.handle_authenticate_user(command)
+    user = await repository.find_by_username(command.username)
     if user is None:
         raise AuthenticationError("Invalid credentials")
     return IamLoginResponse(

@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import re
 
 from src.app.shared.exceptions import ValidationError
-
-
-_USERNAME_PATTERN = re.compile(r"^U\d{9}$")
+from src.app.shared.validation import USERNAME_REGEX
 
 
 @dataclass(frozen=True, slots=True)
@@ -15,8 +12,12 @@ class CreateUserCommand:
     password: str
 
     def __post_init__(self) -> None:
-        if not _USERNAME_PATTERN.fullmatch(self.username):
-            raise ValidationError("username must match U#########")
+        normalized_username = self.username.strip().lower()
+        if not normalized_username:
+            raise ValidationError("username cannot be empty")
+        if not USERNAME_REGEX.fullmatch(normalized_username):
+            raise ValidationError("username must contain only letters and be 3 to 30 characters long")
+        object.__setattr__(self, "username", normalized_username)
         if len(self.password) < 12:
             raise ValidationError("password must be at least 12 characters long")
         if not any(ch.islower() for ch in self.password):
