@@ -15,3 +15,6 @@ class IamUserRepository(Protocol):
 
     async def save(self, user: IamUser) -> IamUser:
         ...
+
+    async def find_all(self) -> list[IamUser]:
+        ...

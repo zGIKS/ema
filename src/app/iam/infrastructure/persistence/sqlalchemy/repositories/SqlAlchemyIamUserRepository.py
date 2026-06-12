@@ -54,3 +54,8 @@ class SqlAlchemyIamUserRepository(IamUserRepository):
         await self._session.commit()
         await self._session.refresh(model)
         return self._to_domain(model)
+
+    async def find_all(self) -> list[IamUser]:
+        result = await self._session.execute(select(IamUserModel))
+        models = result.scalars().all()
+        return [self._to_domain(m) for m in models]

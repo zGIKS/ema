@@ -7,7 +7,11 @@ from fastapi import APIRouter, Depends, status
 from src.app.iam.application.internal.commandservices.IamCommandServiceImpl import (
     IamCommandServiceImpl,
 )
+from src.app.iam.application.internal.queryservices.UserQueryServiceImpl import (
+    UserQueryServiceImpl,
+)
 from src.app.iam.domain.model.commands import AuthenticateUserCommand, CreateUserCommand, UpdateUserRoleCommand
+from src.app.iam.domain.model.queries import GetAllUsersQuery
 from src.app.iam.domain.model.entities import CurrentUser
 from src.app.iam.domain.model.valueobjects import UserId
 from src.app.iam.infrastructure.persistence.sqlalchemy.repositories import SqlAlchemyIamUserRepository
@@ -93,3 +97,26 @@ async def update_user_role(
         )
     )
     return AuthenticatedUserResource(user_id=user.user_id.value, username=user.username, role=user.role.value)
+
+
+@router.get(
+    "/users",
+    response_model=list[AuthenticatedUserResource],
+    status_code=status.HTTP_200_OK,
+    summary="Get all users with their roles (Admin only)",
+)
+async def get_all_users(
+    _current_user: Annotated[CurrentUser, Depends(require_admin_user)],
+    database=Depends(get_database),
+) -> list[AuthenticatedUserResource]:
+    repository = SqlAlchemyIamUserRepository(database)
+    query_service = UserQueryServiceImpl(user_repository=repository)
+    users = await query_service.handle_get_all_users(GetAllUsersQuery())
+    return [
+        AuthenticatedUserResource(
+            user_id=u.user_id.value,
+            username=u.username,
+            role=u.role.value,
+        )
+        for u in users
+    ]
