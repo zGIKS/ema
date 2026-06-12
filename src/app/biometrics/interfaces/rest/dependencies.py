@@ -55,7 +55,7 @@ async def get_person_identification_query_service(
     ],
 ) -> PersonIdentificationQueryServiceImpl:
     repository = SqlAlchemyPersonRepository(
-        database=database,
+        session=database,
         max_embeddings_per_person=settings.max_embeddings_per_person,
     )
     return PersonIdentificationQueryServiceImpl(

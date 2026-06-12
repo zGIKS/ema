@@ -93,7 +93,7 @@ async def get_person_enrollment_command_service(
     ],
 ) -> PersonEnrollmentCommandServiceImpl:
     repository = SqlAlchemyPersonRepository(
-        database=database,
+        session=database,
         max_embeddings_per_person=settings.max_embeddings_per_person,
     )
     return PersonEnrollmentCommandServiceImpl(
@@ -110,7 +110,7 @@ async def get_person_directory_query_service(
     database: Annotated[AsyncSession, Depends(get_database)],
 ) -> PersonDirectoryQueryServiceImpl:
     repository = SqlAlchemyPersonRepository(
-        database=database,
+        session=database,
         max_embeddings_per_person=settings.max_embeddings_per_person,
     )
     return PersonDirectoryQueryServiceImpl(person_repository=repository)
