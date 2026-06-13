@@ -51,7 +51,7 @@ class SqlAlchemyIamUserRepository(IamUserRepository):
             model.role = user.role.value
             model.is_active = user.is_active
 
-        await self._session.commit()
+        await self._session.flush()
         await self._session.refresh(model)
         return self._to_domain(model)
 

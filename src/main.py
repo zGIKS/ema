@@ -1,3 +1,6 @@
+from contextlib import asynccontextmanager
+
+import httpx
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -26,16 +29,22 @@ from src.app.shared.exceptions import (
 )
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    app.state.http_client = httpx.AsyncClient()
+    try:
+        await upgrade_database_async()
+        yield
+    finally:
+        await app.state.http_client.aclose()
+
+
 def create_app() -> FastAPI:
-    app = FastAPI(title="Face Recognition API", version="0.1.0")
+    app = FastAPI(title="Face Recognition API", version="0.1.0", lifespan=lifespan)
     app.include_router(identity_router)
     app.include_router(biometrics_router)
     app.include_router(auditory_router)
     app.include_router(iam_router)
-
-    @app.on_event("startup")
-    async def _apply_migrations() -> None:
-        await upgrade_database_async()
 
     @app.exception_handler(ValidationError)
     async def _validation_error_handler(_request, exc: ValidationError):

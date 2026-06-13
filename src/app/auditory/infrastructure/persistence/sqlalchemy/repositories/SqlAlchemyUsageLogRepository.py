@@ -55,7 +55,7 @@ class SqlAlchemyUsageLogRepository(UsageLogRepository):
                 image_url=image_url,
             )
         )
-        await self._session.commit()
+        await self._session.flush()
 
     async def log_register(
         self,
@@ -81,7 +81,7 @@ class SqlAlchemyUsageLogRepository(UsageLogRepository):
                 image_url=image_url,
             )
         )
-        await self._session.commit()
+        await self._session.flush()
 
     async def log_add_person_face_samples(
         self,
@@ -109,7 +109,7 @@ class SqlAlchemyUsageLogRepository(UsageLogRepository):
                 duration_ms=int(duration_ms),
             )
         )
-        await self._session.commit()
+        await self._session.flush()
 
     async def find_paginated(
         self,

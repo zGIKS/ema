@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
-from functools import lru_cache
 from typing import Annotated
 
-from fastapi import Depends
+import httpx
+from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.identity.application.internal.commandservices.PersonEnrollmentCommandServiceImpl import (
@@ -41,6 +41,10 @@ async def get_database() -> AsyncIterator[AsyncSession]:
         yield session
 
 
+def get_http_client(request: Request) -> httpx.AsyncClient:
+    return request.app.state.http_client
+
+
 def get_embedding_extraction_query_service() -> FaceEmbeddingExtractionQueryService:
     engine_setting = settings.engine.strip().lower()
     if engine_setting != "insightface":
@@ -61,19 +65,24 @@ def get_face_embedding_extraction_acl_service(
     return FaceEmbeddingExtractionService(engine=extraction_engine)
 
 
-def get_dni_lookup_query_service() -> DecolectaDniLookupService:
+def get_dni_lookup_query_service(
+    http_client: Annotated[httpx.AsyncClient, Depends(get_http_client)],
+) -> DecolectaDniLookupService:
     return DecolectaDniLookupService(
         api_key=settings.decolecta_api_key,
         base_url=settings.decolecta_base_url,
+        http_client=http_client,
     )
 
 
-@lru_cache(maxsize=1)
-def get_cloudinary_image_upload_service() -> CloudinaryImageUploadService:
+def get_cloudinary_image_upload_service(
+    http_client: Annotated[httpx.AsyncClient, Depends(get_http_client)],
+) -> CloudinaryImageUploadService:
     return CloudinaryImageUploadService(
         api_key=settings.cloudinary_api_key,
         api_secret=settings.cloudinary_api_secret,
         cloud_name=settings.cloudinary_cloud_name,
+        http_client=http_client,
     )
 
 

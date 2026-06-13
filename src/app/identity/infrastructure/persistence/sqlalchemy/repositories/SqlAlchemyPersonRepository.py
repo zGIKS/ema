@@ -98,7 +98,7 @@ class SqlAlchemyPersonRepository(PersonRepository):
             model.image_url = person.image_url
             model.samples = samples_payload
 
-        await self._session.commit()
+        await self._session.flush()
         await self._session.refresh(model)
         return self._to_domain(model)
 

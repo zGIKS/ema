@@ -57,7 +57,7 @@ class SqlAlchemyIamRefreshTokenRepository(IamRefreshTokenRepository):
             model.revoked_at = refresh_token.revoked_at
             model.replaced_by_token_id = refresh_token.replaced_by_token_id
 
-        await self._session.commit()
+        await self._session.flush()
         await self._session.refresh(model)
         return self._to_domain(model)
 
@@ -70,4 +70,4 @@ class SqlAlchemyIamRefreshTokenRepository(IamRefreshTokenRepository):
             return
 
         model.revoked_at = datetime.now(UTC)
-        await self._session.commit()
+        await self._session.flush()

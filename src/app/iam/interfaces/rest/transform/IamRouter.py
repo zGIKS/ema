@@ -4,12 +4,6 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request, Response, status
 
-from src.app.iam.application.internal.commandservices.IamCommandServiceImpl import (
-    IamCommandServiceImpl,
-)
-from src.app.iam.application.internal.queryservices.UserQueryServiceImpl import (
-    UserQueryServiceImpl,
-)
 from src.app.iam.domain.model.commands import (
     AuthenticateUserCommand,
     CreateUserCommand,
@@ -21,13 +15,12 @@ from src.app.iam.domain.model.queries import GetAllUsersQuery
 from src.app.iam.domain.model.queries import ResolveBearerTokenQuery
 from src.app.iam.domain.model.entities import CurrentUser
 from src.app.iam.domain.model.valueobjects import UserId
-from src.app.iam.infrastructure.persistence.sqlalchemy.repositories import (
-    SqlAlchemyIamRefreshTokenRepository,
-    SqlAlchemyIamUserRepository,
-)
 from src.app.iam.interfaces.rest.dependencies import (
+    get_iam_command_service,
     get_current_user,
+    get_iam_user_repository,
     get_user_authentication_query_service,
+    get_user_query_service,
     require_admin_user,
 )
 from src.app.iam.interfaces.rest.resources import (
@@ -37,7 +30,6 @@ from src.app.iam.interfaces.rest.resources import (
     IamUserRequest,
     UpdateUserRoleRequest,
 )
-from src.app.identity.interfaces.rest.dependencies import get_database
 from src.app.shared.config import settings
 from src.app.shared.exceptions import AuthenticationError
 from src.app.shared.interfaces.rest.resources.ErrorResponse import ErrorResponse
@@ -78,16 +70,11 @@ def _clear_refresh_token_cookie(response: Response) -> None:
 async def login(
     request: IamLoginRequest,
     response: Response,
-    database=Depends(get_database),
+    command_service=Depends(get_iam_command_service),
+    user_repository=Depends(get_iam_user_repository),
 ) -> IamLoginResponse:
-    user_repository = SqlAlchemyIamUserRepository(database)
-    refresh_token_repository = SqlAlchemyIamRefreshTokenRepository(database)
-    service = IamCommandServiceImpl(
-        user_repository=user_repository,
-        refresh_token_repository=refresh_token_repository,
-    )
     command = AuthenticateUserCommand(username=request.username, password=request.password)
-    access_token, refresh_token = await service.handle_authenticate_user(command)
+    access_token, refresh_token = await command_service.handle_authenticate_user(command)
     user = await user_repository.find_by_username(command.username)
     if user is None:
         raise AuthenticationError("Invalid credentials")
@@ -113,23 +100,17 @@ async def login(
 async def refresh_session(
     request: Request,
     response: Response,
-    database=Depends(get_database),
+    command_service=Depends(get_iam_command_service),
+    auth_service=Depends(get_user_authentication_query_service),
 ) -> IamLoginResponse:
     refresh_token = request.cookies.get(settings.refresh_token_cookie_name)
     if not refresh_token:
         raise AuthenticationError("Refresh token is required")
 
-    user_repository = SqlAlchemyIamUserRepository(database)
-    refresh_token_repository = SqlAlchemyIamRefreshTokenRepository(database)
-    service = IamCommandServiceImpl(
-        user_repository=user_repository,
-        refresh_token_repository=refresh_token_repository,
-    )
-    access_token, new_refresh_token = await service.handle_refresh_session(
+    access_token, new_refresh_token = await command_service.handle_refresh_session(
         RefreshSessionCommand(refresh_token=refresh_token)
     )
 
-    auth_service = get_user_authentication_query_service()
     current_user = await auth_service.handle_resolve_bearer_token(
         ResolveBearerTokenQuery(token=access_token)
     )
@@ -174,17 +155,11 @@ async def verify_token(
 async def logout_session(
     request: Request,
     response: Response,
-    database=Depends(get_database),
+    command_service=Depends(get_iam_command_service),
 ) -> Response:
     refresh_token = request.cookies.get(settings.refresh_token_cookie_name)
     if refresh_token:
-        user_repository = SqlAlchemyIamUserRepository(database)
-        refresh_token_repository = SqlAlchemyIamRefreshTokenRepository(database)
-        service = IamCommandServiceImpl(
-            user_repository=user_repository,
-            refresh_token_repository=refresh_token_repository,
-        )
-        await service.handle_logout_session(LogoutSessionCommand(refresh_token=refresh_token))
+        await command_service.handle_logout_session(LogoutSessionCommand(refresh_token=refresh_token))
 
     _clear_refresh_token_cookie(response)
     response.status_code = status.HTTP_204_NO_CONTENT
@@ -200,15 +175,9 @@ async def logout_session(
 async def create_user(
     request: IamUserRequest,
     _current_user: Annotated[CurrentUser, Depends(require_admin_user)],
-    database=Depends(get_database),
+    command_service=Depends(get_iam_command_service),
 ) -> AuthenticatedUserResource:
-    user_repository = SqlAlchemyIamUserRepository(database)
-    refresh_token_repository = SqlAlchemyIamRefreshTokenRepository(database)
-    service = IamCommandServiceImpl(
-        user_repository=user_repository,
-        refresh_token_repository=refresh_token_repository,
-    )
-    user = await service.handle_create_user(
+    user = await command_service.handle_create_user(
         CreateUserCommand(
             username=request.username,
             password=request.password,
@@ -227,15 +196,9 @@ async def update_user_role(
     user_id: str,
     request: UpdateUserRoleRequest,
     _current_user: Annotated[CurrentUser, Depends(require_admin_user)],
-    database=Depends(get_database),
+    command_service=Depends(get_iam_command_service),
 ) -> AuthenticatedUserResource:
-    user_repository = SqlAlchemyIamUserRepository(database)
-    refresh_token_repository = SqlAlchemyIamRefreshTokenRepository(database)
-    service = IamCommandServiceImpl(
-        user_repository=user_repository,
-        refresh_token_repository=refresh_token_repository,
-    )
-    user = await service.handle_update_user_role(
+    user = await command_service.handle_update_user_role(
         UpdateUserRoleCommand(
             user_id=UserId(user_id),
             role=request.role,
@@ -252,10 +215,8 @@ async def update_user_role(
 )
 async def get_all_users(
     _current_user: Annotated[CurrentUser, Depends(require_admin_user)],
-    database=Depends(get_database),
+    query_service=Depends(get_user_query_service),
 ) -> list[AuthenticatedUserResource]:
-    repository = SqlAlchemyIamUserRepository(database)
-    query_service = UserQueryServiceImpl(user_repository=repository)
     users = await query_service.handle_get_all_users(GetAllUsersQuery())
     return [
         AuthenticatedUserResource(
