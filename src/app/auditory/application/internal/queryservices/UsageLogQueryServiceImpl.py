@@ -14,9 +14,12 @@ class UsageLogQueryServiceImpl(UsageLogQueryService):
         self,
         query: GetUsageLogsQuery,
     ) -> UsageLogsPageResult:
+        requester_role = query.requester_role.strip().lower()
+        user_id = None if requester_role == "admin" else query.requester_user_id
         logs, total = await self._usage_log_repository.find_paginated(
             page=query.page,
             page_size=query.page_size,
+            user_id=user_id,
         )
         return UsageLogsPageResult(
             items=logs,

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import hashlib
-
-import numpy as np
+import math
+import random
 
 from src.app.biometrics.domain.model.results import FaceExtractionResult
 from src.app.biometrics.domain.model.valueobjects import BoundingBox, FaceEmbedding
@@ -23,13 +23,15 @@ class StubFaceRecognitionEngine(FaceEmbeddingExtractionQueryService):
     async def handle_extract_embedding(self, image_bytes: bytes) -> FaceExtractionResult:
         digest = hashlib.sha256(image_bytes).digest()
         seed = int.from_bytes(digest[:8], "big", signed=False)
-        rng = np.random.default_rng(seed)
-        vec = rng.normal(0, 1, size=(self._dim,)).astype(np.float32)
-        vec /= max(1e-6, float(np.linalg.norm(vec)))
+        rng = random.Random(seed)
+        vec = tuple(rng.gauss(0.0, 1.0) for _ in range(self._dim))
+        norm = math.sqrt(sum(v * v for v in vec))
+        if norm > 1e-6:
+            vec = tuple(v / norm for v in vec)
 
         # Fake a box to keep API shape stable.
         box = BoundingBox(x=0, y=0, w=1, h=1)
         return FaceExtractionResult(
-            embedding=FaceEmbedding(tuple(float(x) for x in vec.tolist())),
+            embedding=FaceEmbedding(tuple(float(x) for x in vec)),
             box=box,
         )

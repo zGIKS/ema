@@ -1,3 +1,6 @@
+from contextlib import asynccontextmanager
+
+import httpx
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -5,14 +8,19 @@ from fastapi.responses import JSONResponse
 from src.app.biometrics.interfaces.rest.transform.BiometricsRouter import (
     router as biometrics_router,
 )
-from src.app.identity.interfaces.rest.dependencies import init_database
 from src.app.identity.interfaces.rest.transform.IdentityRouter import (
     router as identity_router,
 )
 from src.app.auditory.interfaces.rest.transform.AuditoryRouter import (
     router as auditory_router,
 )
+from src.app.iam.interfaces.rest.transform.IamRouter import (
+    router as iam_router,
+)
+from src.app.shared.infrastructure.persistence.alembic import upgrade_database_async
 from src.app.shared.exceptions import (
+    AuthenticationError,
+    AuthorizationError,
     ConflictError,
     DomainError,
     ExternalServiceError,
@@ -21,15 +29,22 @@ from src.app.shared.exceptions import (
 )
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    app.state.http_client = httpx.AsyncClient()
+    try:
+        await upgrade_database_async()
+        yield
+    finally:
+        await app.state.http_client.aclose()
+
+
 def create_app() -> FastAPI:
-    app = FastAPI(title="Face Recognition API", version="0.1.0")
+    app = FastAPI(title="Face Recognition API", version="0.1.0", lifespan=lifespan)
     app.include_router(identity_router)
     app.include_router(biometrics_router)
     app.include_router(auditory_router)
-
-    @app.on_event("startup")
-    async def _init_database() -> None:
-        await init_database()
+    app.include_router(iam_router)
 
     @app.exception_handler(ValidationError)
     async def _validation_error_handler(_request, exc: ValidationError):
@@ -54,6 +69,18 @@ def create_app() -> FastAPI:
     @app.exception_handler(ExternalServiceError)
     async def _external_service_error_handler(_request, exc: ExternalServiceError):
         return JSONResponse(status_code=502, content={"detail": str(exc)})
+
+    @app.exception_handler(AuthenticationError)
+    async def _authentication_error_handler(_request, exc: AuthenticationError):
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Unauthorized"},
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    @app.exception_handler(AuthorizationError)
+    async def _authorization_error_handler(_request, exc: AuthorizationError):
+        return JSONResponse(status_code=403, content={"detail": "Forbidden"})
 
     @app.exception_handler(Exception)
     async def _unhandled_error_handler(_request, _exc: Exception):

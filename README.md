@@ -25,13 +25,39 @@ Required `.env` keys:
 - `FR_CLOUDINARY_API_KEY=...`
 - `FR_CLOUDINARY_API_SECRET=...`
 - `FR_CLOUDINARY_CLOUD_NAME=...`
-- `FR_DB_URL=mongodb://admin:admin@localhost:27017`
-- `FR_DB_NAME=ema`
+- `FR_DB_URL=postgresql+asyncpg://postgres:admin@localhost:5432/ema`
+- `FR_JWT_SECRET=...`
+- Optional cookie/session settings: `FR_REFRESH_TOKEN_COOKIE_SECURE`, `FR_REFRESH_TOKEN_COOKIE_SAMESITE`, `FR_REFRESH_TOKEN_COOKIE_NAME`.
 ## Notes
 
 - InsightFace is required.
-- Images are stored in Cloudinary and only embeddings are persisted in MongoDB.
+- Images are stored in Cloudinary and face data is persisted in PostgreSQL.
 - `POST /api/v1/identity/register` creates a person once using DNI + one image.
+- `POST /api/v1/iam/login` returns a bearer token using username/password and sets a refresh-token cookie.
+- `POST /api/v1/iam/refresh` renews the session using the refresh-token cookie.
+- `GET /api/v1/iam/verify` validates the current bearer token and returns the active user.
+- `POST /api/v1/iam/logout` revokes the refresh token and clears the session cookie.
+- `POST /api/v1/iam/users` creates users with role `user` only (admin only).
+- `PATCH /api/v1/iam/users/{user_id}/role` lets an admin change a user role.
 - `GET /api/v1/biometrics/identify` is the biometric read path.
-- `GET /api/v1/identity/persons` is the identity read path.
-- `POST /api/v1/identity/persons/{person_id}/samples` adds more photos.
+- `GET /api/v1/identity/persons` is admin-only.
+- `POST /api/v1/identity/persons/{person_id}/samples` adds more photos (admin only).
+- `GET /api/v1/auditory/usage-logs` returns all logs for admins and only own logs for users.
+
+## Database init
+
+Run:
+
+```bash
+uvicorn src.main:app --host 0.0.0.0 --port 8080
+```
+
+The API applies Alembic migrations automatically on startup.
+
+If you want to run migrations manually:
+
+```bash
+uv run alembic upgrade head
+```
+
+The first migration creates the schema and the second seeds the default admin user.

@@ -31,6 +31,8 @@ from src.app.identity.interfaces.rest.dependencies import (
     get_person_directory_query_service,
     get_person_enrollment_command_service,
 )
+from src.app.iam.domain.model.entities import CurrentUser
+from src.app.iam.interfaces.rest.dependencies import require_admin_user
 from src.app.auditory.interfaces.acl.AuditoryContextFacade import AuditoryContextFacade
 from src.app.auditory.interfaces.rest.dependencies import get_auditory_context_facade
 from src.app.shared.interfaces.rest.resources import ErrorResponse
@@ -51,6 +53,7 @@ async def get_registered_persons(
         PersonDirectoryQueryServiceImpl,
         Depends(get_person_directory_query_service),
     ],
+    _current_user: Annotated[CurrentUser, Depends(require_admin_user)],
     page: int = 1,
     page_size: int = 20,
     search: str | None = None,
@@ -99,6 +102,7 @@ async def get_person_by_id(
         PersonDirectoryQueryServiceImpl,
         Depends(get_person_directory_query_service),
     ],
+    _current_user: Annotated[CurrentUser, Depends(require_admin_user)],
 ) -> RegisteredPersonDetailResource:
     person = await query_service.handle_get_person_by_id(
         GetPersonByIdQuery(person_id=PersonId(person_id))
@@ -140,6 +144,7 @@ async def register_person_face(
         AuditoryContextFacade,
         Depends(get_auditory_context_facade),
     ],
+    current_user: Annotated[CurrentUser, Depends(require_admin_user)],
     dni: str = Form(..., description="Peruvian DNI", examples=["12345678"]),
     file: UploadFile = File(..., description="Single image file"),
 ) -> RegisterResponse:
@@ -156,6 +161,7 @@ async def register_person_face(
     )
 
     await auditory_facade.log_register(
+        user_id=current_user.user_id.value,
         person_id=person.person_id.value,
         first_name=person.first_name.value,
         last_name=person.last_name.value,
@@ -198,6 +204,7 @@ async def add_person_face_samples(
         AuditoryContextFacade,
         Depends(get_auditory_context_facade),
     ],
+    current_user: Annotated[CurrentUser, Depends(require_admin_user)],
     person_id: str,
     files: list[UploadFile] | None = File(default=None),
     file: UploadFile | None = File(default=None),
@@ -218,6 +225,7 @@ async def add_person_face_samples(
     person = await command_service.handle_add_face_samples(command)
 
     await auditory_facade.log_add_person_face_samples(
+        user_id=current_user.user_id.value,
         person_id=person.person_id.value,
         first_name=person.first_name.value,
         last_name=person.last_name.value,

@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
+from src.app.shared.validation import UUID_REGEX
 
 
 class AddFaceSamplesResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     person_id: str = Field(
-        min_length=1,
+        pattern=UUID_REGEX,
         description="Person identifier",
         examples=["550e8400-e29b-41d4-a716-446655440000"],
     )

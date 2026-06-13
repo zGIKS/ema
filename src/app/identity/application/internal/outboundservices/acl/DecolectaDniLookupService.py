@@ -9,9 +9,10 @@ from src.app.shared.exceptions import ValidationError
 
 
 class DecolectaDniLookupService(DniLookupQueryService):
-    def __init__(self, api_key: str, base_url: str) -> None:
+    def __init__(self, api_key: str, base_url: str, http_client: httpx.AsyncClient) -> None:
         self._api_key = api_key.strip()
         self._base_url = base_url.rstrip("/")
+        self._http_client = http_client
 
     async def handle_lookup_dni(self, dni: PeruvianDni) -> DniLookupResult | None:
         if not self._api_key:
@@ -24,8 +25,12 @@ class DecolectaDniLookupService(DniLookupQueryService):
         }
 
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                response = await client.get(url, params={"numero": dni.value}, headers=headers)
+            response = await self._http_client.get(
+                url,
+                params={"numero": dni.value},
+                headers=headers,
+                timeout=15.0,
+            )
         except httpx.RequestError:
             return None
 

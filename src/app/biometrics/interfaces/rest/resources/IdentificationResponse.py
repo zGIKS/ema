@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
+from src.app.shared.validation import UUID_REGEX
 
 
 class IdentificationResponse(BaseModel):
@@ -8,6 +9,7 @@ class IdentificationResponse(BaseModel):
 
     uuid: str | None = Field(
         default=None,
+        pattern=UUID_REGEX,
         description="Matched person UUID when the confidence reaches the threshold",
         examples=["550e8400-e29b-41d4-a716-446655440000"],
     )

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from functools import lru_cache
+from collections.abc import AsyncIterator
 from typing import Annotated
 
 from fastapi import Depends
-from motor.motor_asyncio import AsyncIOMotorDatabase
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.biometrics.application.internal.outboundservices.acl.FaceEmbeddingExtractionService import (
     FaceEmbeddingExtractionService,
@@ -16,25 +16,19 @@ from src.app.biometrics.domain.services import FaceEmbeddingExtractionQueryServi
 from src.app.biometrics.infrastructure.ai.insightface_engine import (
     InsightFaceRecognitionEngine,
 )
-from src.app.identity.infrastructure.persistence.mongodb.MongoDbClientFactory import (
-    MongoDbClientFactory,
+from src.app.identity.infrastructure.persistence.sqlalchemy.repositories import (
+    SqlAlchemyPersonRepository,
 )
-from src.app.identity.infrastructure.persistence.mongodb.repositories.MongoDbPersonRepository import (
-    MongoDbPersonRepository,
+from src.app.auditory.infrastructure.persistence.sqlalchemy.repositories import (
+    SqlAlchemyUsageLogRepository,
 )
-from src.app.identity.infrastructure.persistence.mongodb.repositories.MongoDbUsageLogRepository import (
-    MongoDbUsageLogRepository,
-)
+from src.app.shared.infrastructure.persistence.sqlalchemy import get_session
 from src.app.shared.config import settings
 
 
-@lru_cache(maxsize=1)
-def _client_factory() -> MongoDbClientFactory:
-    return MongoDbClientFactory(db_url=settings.db_url, db_name=settings.db_name)
-
-
-async def get_database() -> AsyncIOMotorDatabase:
-    return _client_factory().database()
+async def get_database() -> AsyncIterator[AsyncSession]:
+    async for session in get_session():
+        yield session
 
 
 def get_embedding_extraction_query_service() -> FaceEmbeddingExtractionQueryService:
@@ -54,14 +48,14 @@ def get_face_embedding_extraction_acl_service(
 
 
 async def get_person_identification_query_service(
-    database: Annotated[AsyncIOMotorDatabase, Depends(get_database)],
+    database: Annotated[AsyncSession, Depends(get_database)],
     extraction_service: Annotated[
         FaceEmbeddingExtractionService,
         Depends(get_face_embedding_extraction_acl_service),
     ],
 ) -> PersonIdentificationQueryServiceImpl:
-    repository = MongoDbPersonRepository(
-        database=database,
+    repository = SqlAlchemyPersonRepository(
+        session=database,
         max_embeddings_per_person=settings.max_embeddings_per_person,
     )
     return PersonIdentificationQueryServiceImpl(
@@ -72,10 +66,6 @@ async def get_person_identification_query_service(
 
 
 async def get_usage_log_repository(
-    database: Annotated[AsyncIOMotorDatabase, Depends(get_database)],
-) -> MongoDbUsageLogRepository:
-    return MongoDbUsageLogRepository(database=database)
-
-
-async def init_database() -> None:
-    await _client_factory().init_database()
+    database: Annotated[AsyncSession, Depends(get_database)],
+) -> SqlAlchemyUsageLogRepository:
+    return SqlAlchemyUsageLogRepository(session=database)

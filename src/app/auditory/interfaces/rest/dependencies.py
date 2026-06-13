@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from functools import lru_cache
+from collections.abc import AsyncIterator
 from typing import Annotated
 
 from fastapi import Depends
-from motor.motor_asyncio import AsyncIOMotorDatabase
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.auditory.application.internal.commandservices.UsageLogCommandServiceImpl import (
     UsageLogCommandServiceImpl,
@@ -15,33 +15,27 @@ from src.app.auditory.application.internal.queryservices.UsageLogQueryServiceImp
 from src.app.auditory.application.acl.AuditoryContextFacadeImpl import (
     AuditoryContextFacadeImpl,
 )
-from src.app.auditory.infrastructure.persistence.mongodb.repositories.MongoDbUsageLogRepository import (
-    MongoDbUsageLogRepository,
+from src.app.auditory.infrastructure.persistence.sqlalchemy.repositories import (
+    SqlAlchemyUsageLogRepository,
 )
-from src.app.identity.infrastructure.persistence.mongodb.MongoDbClientFactory import (
-    MongoDbClientFactory,
-)
+from src.app.shared.infrastructure.persistence.sqlalchemy import get_session
 from src.app.shared.config import settings
 
 
-@lru_cache(maxsize=1)
-def _client_factory() -> MongoDbClientFactory:
-    return MongoDbClientFactory(db_url=settings.db_url, db_name=settings.db_name)
-
-
-async def get_database() -> AsyncIOMotorDatabase:
-    return _client_factory().database()
+async def get_database() -> AsyncIterator[AsyncSession]:
+    async for session in get_session():
+        yield session
 
 
 async def get_usage_log_repository(
-    database: Annotated[AsyncIOMotorDatabase, Depends(get_database)],
-) -> MongoDbUsageLogRepository:
-    return MongoDbUsageLogRepository(database=database)
+    database: Annotated[AsyncSession, Depends(get_database)],
+) -> SqlAlchemyUsageLogRepository:
+    return SqlAlchemyUsageLogRepository(session=database)
 
 
 async def get_usage_log_command_service(
     repository: Annotated[
-        MongoDbUsageLogRepository,
+        SqlAlchemyUsageLogRepository,
         Depends(get_usage_log_repository),
     ],
 ) -> UsageLogCommandServiceImpl:
@@ -50,7 +44,7 @@ async def get_usage_log_command_service(
 
 async def get_usage_log_query_service(
     repository: Annotated[
-        MongoDbUsageLogRepository,
+        SqlAlchemyUsageLogRepository,
         Depends(get_usage_log_repository),
     ],
 ) -> UsageLogQueryServiceImpl:

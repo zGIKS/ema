@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
+from src.app.shared.validation import UUID_REGEX
 
 
 class RegisteredPersonResource(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     uuid: str = Field(
+        pattern=UUID_REGEX,
         description="Unique identifier of the registered person",
         examples=["550e8400-e29b-41d4-a716-446655440000"],
     )

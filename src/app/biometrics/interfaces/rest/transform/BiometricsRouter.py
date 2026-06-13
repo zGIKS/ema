@@ -15,6 +15,8 @@ from src.app.auditory.interfaces.acl.AuditoryContextFacade import AuditoryContex
 from src.app.auditory.interfaces.rest.dependencies import get_auditory_context_facade
 from src.app.biometrics.interfaces.rest.resources import IdentificationResponse
 from src.app.biometrics.interfaces.rest.dependencies import get_person_identification_query_service
+from src.app.iam.domain.model.entities import CurrentUser
+from src.app.iam.interfaces.rest.dependencies import get_current_user
 from src.app.identity.application.internal.outboundservices.acl.CloudinaryImageUploadService import (
     CloudinaryImageUploadService,
 )
@@ -47,6 +49,7 @@ async def identify_person(
         AuditoryContextFacade,
         Depends(get_auditory_context_facade),
     ],
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
     image_upload_service: Annotated[
         CloudinaryImageUploadService,
         Depends(get_cloudinary_image_upload_service),
@@ -73,6 +76,7 @@ async def identify_person(
     identification = await query_service.handle_identify_person(query)
 
     await auditory_facade.log_identify(
+        user_id=current_user.user_id.value,
         person_id=identification.person_id.value if identification.person_id else None,
         first_name=identification.first_name,
         last_name=identification.last_name,

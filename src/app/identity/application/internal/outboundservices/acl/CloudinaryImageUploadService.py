@@ -6,10 +6,18 @@ from src.app.shared.exceptions import ExternalServiceError
 
 
 class CloudinaryImageUploadService:
-    def __init__(self, *, api_key: str, api_secret: str, cloud_name: str) -> None:
+    def __init__(
+        self,
+        *,
+        api_key: str,
+        api_secret: str,
+        cloud_name: str,
+        http_client: httpx.AsyncClient,
+    ) -> None:
         self._api_key = api_key.strip()
         self._api_secret = api_secret.strip()
         self._cloud_name = cloud_name.strip()
+        self._http_client = http_client
 
     async def upload_image(
         self,
@@ -32,13 +40,13 @@ class CloudinaryImageUploadService:
         url = f"https://api.cloudinary.com/v1_1/{self._cloud_name}/image/upload"
 
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(
-                    url,
-                    data={"public_id": public_id, "overwrite": "true"},
-                    files={"file": (safe_filename, image_bytes, safe_content_type)},
-                    auth=(self._api_key, self._api_secret),
-                )
+            response = await self._http_client.post(
+                url,
+                data={"public_id": public_id, "overwrite": "true"},
+                files={"file": (safe_filename, image_bytes, safe_content_type)},
+                auth=(self._api_key, self._api_secret),
+                timeout=30.0,
+            )
         except httpx.HTTPError as error:
             raise ExternalServiceError(f"Cloudinary upload failed: {error}") from error
 

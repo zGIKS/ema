@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from src.app.shared.exceptions import ValidationError
+from src.app.shared.validation import validate_uuid_string
 
 
 @dataclass(frozen=True, slots=True)
@@ -14,5 +14,4 @@ class FaceRegisteredEvent:
     occurred_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def __post_init__(self) -> None:
-        if not self.person_id or not self.person_id.strip():
-            raise ValidationError("person_id cannot be empty")
+        object.__setattr__(self, "person_id", validate_uuid_string(self.person_id, "person_id"))

@@ -14,7 +14,10 @@ pkgs.mkShell {
       pydantic-settings
       python-dotenv
       python-multipart
-      motor
+      pyjwt
+      sqlalchemy
+      asyncpg
+      alembic
       numpy
       httpx
       insightface
