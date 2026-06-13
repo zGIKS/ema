@@ -17,6 +17,12 @@ class Settings(BaseSettings):
     cloudinary_cloud_name: str
     db_url: str
     jwt_secret: str
+    access_token_ttl_minutes: int = 15
+    refresh_token_ttl_days: int = 30
+    refresh_token_cookie_name: str = "ema_refresh_token"
+    refresh_token_cookie_path: str = "/api/v1/iam"
+    refresh_token_cookie_secure: bool = False
+    refresh_token_cookie_samesite: str = "lax"
 
     insightface_model: str = "buffalo_l"
     insightface_det_size: tuple[int, int] = (640, 640)

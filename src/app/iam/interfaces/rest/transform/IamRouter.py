@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, Response, status
 
 from src.app.iam.application.internal.commandservices.IamCommandServiceImpl import (
     IamCommandServiceImpl,
@@ -10,12 +10,26 @@ from src.app.iam.application.internal.commandservices.IamCommandServiceImpl impo
 from src.app.iam.application.internal.queryservices.UserQueryServiceImpl import (
     UserQueryServiceImpl,
 )
-from src.app.iam.domain.model.commands import AuthenticateUserCommand, CreateUserCommand, UpdateUserRoleCommand
+from src.app.iam.domain.model.commands import (
+    AuthenticateUserCommand,
+    CreateUserCommand,
+    LogoutSessionCommand,
+    RefreshSessionCommand,
+    UpdateUserRoleCommand,
+)
 from src.app.iam.domain.model.queries import GetAllUsersQuery
+from src.app.iam.domain.model.queries import ResolveBearerTokenQuery
 from src.app.iam.domain.model.entities import CurrentUser
 from src.app.iam.domain.model.valueobjects import UserId
-from src.app.iam.infrastructure.persistence.sqlalchemy.repositories import SqlAlchemyIamUserRepository
-from src.app.iam.interfaces.rest.dependencies import require_admin_user
+from src.app.iam.infrastructure.persistence.sqlalchemy.repositories import (
+    SqlAlchemyIamRefreshTokenRepository,
+    SqlAlchemyIamUserRepository,
+)
+from src.app.iam.interfaces.rest.dependencies import (
+    get_current_user,
+    get_user_authentication_query_service,
+    require_admin_user,
+)
 from src.app.iam.interfaces.rest.resources import (
     AuthenticatedUserResource,
     IamLoginRequest,
@@ -24,9 +38,30 @@ from src.app.iam.interfaces.rest.resources import (
     UpdateUserRoleRequest,
 )
 from src.app.identity.interfaces.rest.dependencies import get_database
+from src.app.shared.config import settings
 from src.app.shared.exceptions import AuthenticationError
+from src.app.shared.interfaces.rest.resources.ErrorResponse import ErrorResponse
 
 router = APIRouter(prefix="/api/v1/iam", tags=["IAM"])
+
+
+def _set_refresh_token_cookie(response: Response, refresh_token: str) -> None:
+    response.set_cookie(
+        key=settings.refresh_token_cookie_name,
+        value=refresh_token,
+        httponly=True,
+        secure=settings.refresh_token_cookie_secure,
+        samesite=settings.refresh_token_cookie_samesite,
+        max_age=settings.refresh_token_ttl_days * 24 * 60 * 60,
+        path=settings.refresh_token_cookie_path,
+    )
+
+
+def _clear_refresh_token_cookie(response: Response) -> None:
+    response.delete_cookie(
+        key=settings.refresh_token_cookie_name,
+        path=settings.refresh_token_cookie_path,
+    )
 
 
 @router.post(
@@ -34,23 +69,126 @@ router = APIRouter(prefix="/api/v1/iam", tags=["IAM"])
     response_model=IamLoginResponse,
     status_code=status.HTTP_200_OK,
     summary="Login with username and password",
+    description="Authenticates the user, returns an access token, and stores a refresh token in an HttpOnly cookie.",
+    responses={
+        200: {"description": "Login successful"},
+        401: {"model": ErrorResponse, "description": "Invalid credentials"},
+    },
 )
 async def login(
     request: IamLoginRequest,
+    response: Response,
     database=Depends(get_database),
 ) -> IamLoginResponse:
-    repository = SqlAlchemyIamUserRepository(database)
-    service = IamCommandServiceImpl(user_repository=repository)
+    user_repository = SqlAlchemyIamUserRepository(database)
+    refresh_token_repository = SqlAlchemyIamRefreshTokenRepository(database)
+    service = IamCommandServiceImpl(
+        user_repository=user_repository,
+        refresh_token_repository=refresh_token_repository,
+    )
     command = AuthenticateUserCommand(username=request.username, password=request.password)
-    token = await service.handle_authenticate_user(command)
-    user = await repository.find_by_username(command.username)
+    access_token, refresh_token = await service.handle_authenticate_user(command)
+    user = await user_repository.find_by_username(command.username)
     if user is None:
         raise AuthenticationError("Invalid credentials")
+    _set_refresh_token_cookie(response, refresh_token)
     return IamLoginResponse(
-        access_token=token,
+        access_token=access_token,
         user_id=user.user_id.value,
         username=user.username,
     )
+
+
+@router.post(
+    "/refresh",
+    response_model=IamLoginResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Refresh the current session",
+    description="Uses the refresh token cookie to issue a new access token and refresh token.",
+    responses={
+        200: {"description": "Session refreshed"},
+        401: {"model": ErrorResponse, "description": "Missing or invalid refresh token"},
+    },
+)
+async def refresh_session(
+    request: Request,
+    response: Response,
+    database=Depends(get_database),
+) -> IamLoginResponse:
+    refresh_token = request.cookies.get(settings.refresh_token_cookie_name)
+    if not refresh_token:
+        raise AuthenticationError("Refresh token is required")
+
+    user_repository = SqlAlchemyIamUserRepository(database)
+    refresh_token_repository = SqlAlchemyIamRefreshTokenRepository(database)
+    service = IamCommandServiceImpl(
+        user_repository=user_repository,
+        refresh_token_repository=refresh_token_repository,
+    )
+    access_token, new_refresh_token = await service.handle_refresh_session(
+        RefreshSessionCommand(refresh_token=refresh_token)
+    )
+
+    auth_service = get_user_authentication_query_service()
+    current_user = await auth_service.handle_resolve_bearer_token(
+        ResolveBearerTokenQuery(token=access_token)
+    )
+    _set_refresh_token_cookie(response, new_refresh_token)
+    return IamLoginResponse(
+        access_token=access_token,
+        user_id=current_user.user_id.value,
+        username=current_user.username,
+    )
+
+
+@router.get(
+    "/verify",
+    response_model=AuthenticatedUserResource,
+    status_code=status.HTTP_200_OK,
+    summary="Verify the current access token",
+    description="Returns the authenticated user when the bearer access token is valid.",
+    responses={
+        200: {"description": "Token is valid"},
+        401: {"model": ErrorResponse, "description": "Missing or invalid access token"},
+    },
+)
+async def verify_token(
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+) -> AuthenticatedUserResource:
+    return AuthenticatedUserResource(
+        user_id=current_user.user_id.value,
+        username=current_user.username,
+        role=current_user.role.value,
+    )
+
+
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Logout current session",
+    description="Revokes the refresh token cookie and clears the session cookie on the client.",
+    responses={
+        204: {"description": "Logged out"},
+    },
+)
+async def logout_session(
+    request: Request,
+    response: Response,
+    database=Depends(get_database),
+) -> Response:
+    refresh_token = request.cookies.get(settings.refresh_token_cookie_name)
+    if refresh_token:
+        user_repository = SqlAlchemyIamUserRepository(database)
+        refresh_token_repository = SqlAlchemyIamRefreshTokenRepository(database)
+        service = IamCommandServiceImpl(
+            user_repository=user_repository,
+            refresh_token_repository=refresh_token_repository,
+        )
+        await service.handle_logout_session(LogoutSessionCommand(refresh_token=refresh_token))
+
+    _clear_refresh_token_cookie(response)
+    response.status_code = status.HTTP_204_NO_CONTENT
+    return response
 
 
 @router.post(
@@ -64,8 +202,12 @@ async def create_user(
     _current_user: Annotated[CurrentUser, Depends(require_admin_user)],
     database=Depends(get_database),
 ) -> AuthenticatedUserResource:
-    repository = SqlAlchemyIamUserRepository(database)
-    service = IamCommandServiceImpl(user_repository=repository)
+    user_repository = SqlAlchemyIamUserRepository(database)
+    refresh_token_repository = SqlAlchemyIamRefreshTokenRepository(database)
+    service = IamCommandServiceImpl(
+        user_repository=user_repository,
+        refresh_token_repository=refresh_token_repository,
+    )
     user = await service.handle_create_user(
         CreateUserCommand(
             username=request.username,
@@ -87,8 +229,12 @@ async def update_user_role(
     _current_user: Annotated[CurrentUser, Depends(require_admin_user)],
     database=Depends(get_database),
 ) -> AuthenticatedUserResource:
-    repository = SqlAlchemyIamUserRepository(database)
-    service = IamCommandServiceImpl(user_repository=repository)
+    user_repository = SqlAlchemyIamUserRepository(database)
+    refresh_token_repository = SqlAlchemyIamRefreshTokenRepository(database)
+    service = IamCommandServiceImpl(
+        user_repository=user_repository,
+        refresh_token_repository=refresh_token_repository,
+    )
     user = await service.handle_update_user_role(
         UpdateUserRoleCommand(
             user_id=UserId(user_id),

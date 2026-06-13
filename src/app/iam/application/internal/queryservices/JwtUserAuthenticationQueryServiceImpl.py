@@ -25,15 +25,22 @@ class JwtUserAuthenticationQueryServiceImpl(UserAuthenticationQueryService):
         except jwt.InvalidTokenError as error:
             raise AuthenticationError("Invalid bearer token") from error
 
+        token_type = payload.get("typ")
         user_id = payload.get("sub")
+        username = payload.get("username")
         role = payload.get("role")
 
+        if token_type != "access":
+            raise AuthenticationError("Invalid bearer token")
         if not isinstance(user_id, str) or not user_id.strip():
             raise AuthenticationError("Token is missing subject")
+        if not isinstance(username, str) or not username.strip():
+            raise AuthenticationError("Token is missing username")
         if not isinstance(role, str) or not role.strip():
             raise AuthenticationError("Token is missing role")
 
         return CurrentUser(
             user_id=UserId(user_id),
+            username=username,
             role=UserRole.from_value(role),
         )

@@ -27,12 +27,16 @@ Required `.env` keys:
 - `FR_CLOUDINARY_CLOUD_NAME=...`
 - `FR_DB_URL=postgresql+asyncpg://postgres:admin@localhost:5432/ema`
 - `FR_JWT_SECRET=...`
+- Optional cookie/session settings: `FR_REFRESH_TOKEN_COOKIE_SECURE`, `FR_REFRESH_TOKEN_COOKIE_SAMESITE`, `FR_REFRESH_TOKEN_COOKIE_NAME`.
 ## Notes
 
 - InsightFace is required.
 - Images are stored in Cloudinary and face data is persisted in PostgreSQL.
 - `POST /api/v1/identity/register` creates a person once using DNI + one image.
-- `POST /api/v1/iam/login` returns a bearer token using username/password.
+- `POST /api/v1/iam/login` returns a bearer token using username/password and sets a refresh-token cookie.
+- `POST /api/v1/iam/refresh` renews the session using the refresh-token cookie.
+- `GET /api/v1/iam/verify` validates the current bearer token and returns the active user.
+- `POST /api/v1/iam/logout` revokes the refresh token and clears the session cookie.
 - `POST /api/v1/iam/users` creates users with role `user` only (admin only).
 - `PATCH /api/v1/iam/users/{user_id}/role` lets an admin change a user role.
 - `GET /api/v1/biometrics/identify` is the biometric read path.

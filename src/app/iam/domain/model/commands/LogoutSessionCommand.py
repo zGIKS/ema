@@ -6,9 +6,9 @@ from src.app.shared.exceptions import ValidationError
 
 
 @dataclass(frozen=True, slots=True)
-class ResolveBearerTokenQuery:
-    token: str
+class LogoutSessionCommand:
+    refresh_token: str
 
     def __post_init__(self) -> None:
-        if not self.token.strip():
-            raise ValidationError("token cannot be empty")
+        if not self.refresh_token.strip():
+            raise ValidationError("refresh_token cannot be empty")

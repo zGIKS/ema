@@ -1,3 +1,4 @@
 from src.app.iam.infrastructure.persistence.sqlalchemy.repositories.SqlAlchemyIamUserRepository import SqlAlchemyIamUserRepository
+from src.app.iam.infrastructure.persistence.sqlalchemy.repositories.SqlAlchemyIamRefreshTokenRepository import SqlAlchemyIamRefreshTokenRepository
 
-__all__ = ["SqlAlchemyIamUserRepository"]
+__all__ = ["SqlAlchemyIamUserRepository", "SqlAlchemyIamRefreshTokenRepository"]
